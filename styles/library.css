@@ -1,0 +1,1272 @@
+/* ============================================
+   LIBRARY — courses, lessons, exams, stats
+   Owned by library/. Everything here styles a screen
+   that only library.js and library/stats.js render.
+   Loaded after base.css, so it can rely on the design
+   system variables but must not redefine them.
+   ============================================ */
+
+/* ============================================
+   Stats Modal Content
+   ============================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  font-family: var(--mono);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+.stat-value.accent { color: var(--accent-light); }
+.stat-value.green  { color: var(--green); }
+.stat-value.yellow { color: var(--yellow); }
+.stat-value.cyan   { color: var(--cyan); }
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin: 1.25rem 0 0.5rem;
+}
+
+/* ── Badges (library/stats.js's badgeGridHtml) ── */
+.badge-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.6rem;
+}
+.badge-chip {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  padding: 0.7rem 0.4rem; text-align: center; font: inherit; color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-surface); opacity: 0.5; cursor: default;
+}
+.badge-chip.earned { opacity: 1; border-color: var(--border-accent); background: var(--accent-glow); cursor: pointer; }
+.badge-chip.pinned { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.badge-icon { font-size: 1.4rem; }
+.badge-name { font-size: 0.68rem; font-weight: 600; line-height: 1.25; }
+.badge-pin-dot {
+  position: absolute; top: 6px; right: 6px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+
+.stats-topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stats-topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xs);
+  font-size: 0.82rem;
+}
+
+.stats-topic-name {
+  color: var(--text-dim);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.stats-topic-score {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+.stats-topic-score.pass { color: var(--green); }
+.stats-topic-score.fail { color: var(--red); }
+.stats-topic-score.none { color: var(--text-muted); }
+
+.stats-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.import-label {
+  cursor: pointer;
+}
+/* ============================================
+   Topic Map
+   ============================================ */
+.topic-map-body {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.module-section { margin-bottom: 2.5rem; animation: slideUp 0.5s ease; }
+.module-section:nth-child(2) { animation-delay: 0.1s; }
+.module-section:nth-child(3) { animation-delay: 0.2s; }
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.module-icon { font-size: 1.3rem; }
+.module-title { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.3px; }
+
+.module-progress {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.module-progress-bar { width: 60px; height: 4px; background: var(--bg-surface); border-radius: 2px; overflow: hidden; }
+.module-progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; width: 0%; }
+
+.module-section:nth-child(1) .module-progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+.module-section:nth-child(1) .module-header { border-color: rgba(99,102,241,0.2); }
+.module-section:nth-child(2) .module-progress-fill { background: linear-gradient(90deg, var(--cyan), #67e8f9); }
+.module-section:nth-child(2) .module-header { border-color: rgba(6,182,212,0.2); }
+.module-section:nth-child(3) .module-progress-fill { background: linear-gradient(90deg, var(--red), #fb923c); }
+.module-section:nth-child(3) .module-header { border-color: rgba(239,68,68,0.2); }
+
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+
+.topic-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+.topic-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--accent-glow) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.topic-card:hover { border-color: var(--border-accent); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.topic-card:hover::before { opacity: 1; }
+.topic-card.locked { opacity: 0.4; cursor: not-allowed; }
+.topic-card.locked:hover { transform: none; box-shadow: none; }
+.topic-card.locked::before { display: none; }
+.topic-card.completed { border-color: var(--green); box-shadow: 0 0 20px var(--green-glow); }
+
+.topic-num {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  font-weight: 700; font-size: 0.8rem; color: var(--text-dim);
+  margin-bottom: 0.6rem;
+}
+.topic-card.completed .topic-num { background: var(--green); border-color: var(--green); color: #fff; }
+.topic-card.current .topic-num { background: var(--accent); border-color: var(--accent); color: #fff; animation: pulse 2s ease infinite; }
+
+.topic-title { position: relative; z-index: 1; font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; line-height: 1.3; }
+.topic-desc { position: relative; z-index: 1; font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 0.6rem; }
+
+.topic-meta {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 0.6rem;
+  font-size: 0.72rem; color: var(--text-muted); flex-wrap: wrap;
+}
+.topic-badge {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.15rem 0.5rem; border-radius: 999px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  font-size: 0.68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.topic-badge.mastered { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--green); }
+/* List-view twin of .roadmap-reward-chip — same milestone-reward
+   language, just inline with the rest of a unit card's meta badges
+   instead of riding on a roadmap node. */
+.topic-badge.reward-badge {
+  font-family: var(--mono); background: var(--accent-glow);
+  border-color: var(--border-accent); color: var(--accent-light);
+}
+.topic-badge.reward-badge.claimed {
+  background: var(--bg-surface); border-color: var(--border); color: var(--text-dim); opacity: 0.7;
+}
+
+/* ── List/Map toggle ── */
+.topic-view-toggle { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+.tvt-btn {
+  padding: 0.45rem 0.9rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text-dim);
+  font: inherit; font-size: 0.82rem; font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.tvt-btn:hover { border-color: var(--border-accent); color: var(--text); }
+.tvt-btn.active { border-color: var(--border-accent); background: var(--accent-glow); color: var(--text); }
+
+/* Flashcards entry point on a list-view topic card — top-right corner,
+   independent click target from the card itself (stopPropagation). */
+.topic-cards-btn {
+  position: absolute; top: 0.7rem; right: 0.7rem; z-index: 2;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  cursor: pointer; font-size: 0.9rem; padding: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.topic-cards-btn:hover { border-color: var(--border-accent); transform: scale(1.08); }
+
+/* ============================================
+   Roadmap (bubble-node map view)
+   ============================================ */
+.roadmap-wrap { position: relative; max-width: 460px; margin: 0 auto; width: 100%; }
+
+.roadmap-spine { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.roadmap-spine path {
+  stroke: var(--border-accent); stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 2 10; opacity: 0.5;
+}
+
+.roadmap-module-label {
+  position: absolute; left: 0; right: 0; text-align: center;
+  font-size: 0.82rem; font-weight: 700; color: var(--text-dim);
+  letter-spacing: 0.2px;
+}
+.roadmap-module-count {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); margin-left: 0.4rem;
+}
+
+.roadmap-node { position: absolute; width: 0; height: 0; z-index: 2; }
+
+/* The boundary a topic and its chunk-dots share — without this the eye
+   has nothing telling it where one topic's cluster ends and the next
+   starts, especially with the spine running right through both. Sized
+   to just clear the chunk-dot ring (44px radius + the dot itself). */
+.roadmap-cluster-ring {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  width: 116px; height: 116px; border-radius: 50%;
+  border: 1px dashed var(--border); opacity: 0.35; pointer-events: none; z-index: 0;
+}
+.roadmap-node.completed .roadmap-cluster-ring { border-color: var(--green); opacity: 0.4; }
+.roadmap-node.current .roadmap-cluster-ring { border-color: var(--accent); opacity: 0.5; }
+
+.roadmap-bubble {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  width: 64px; height: 64px; border-radius: 50%; padding: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-card); border: 2px solid var(--border);
+  font-size: 1.6rem; color: var(--text); cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.roadmap-bubble:hover { transform: translate(-50%, -50%) scale(1.08); border-color: var(--border-accent); }
+.roadmap-node.completed .roadmap-bubble {
+  border-color: var(--green); background: var(--green); color: #fff; box-shadow: 0 0 8px var(--green-glow);
+  /* Completed nodes only — the ✓ and its green bubble, 20% smaller than
+     the shared 64px/1.6rem base every other state still uses. */
+  width: 51px; height: 51px; font-size: 1.28rem;
+}
+.roadmap-node.current .roadmap-bubble {
+  border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); animation: pulse 2s ease infinite;
+}
+.roadmap-node.due .roadmap-bubble { border-color: rgba(56,189,248,0.7); box-shadow: 0 0 14px rgba(56,189,248,0.35); }
+/* Locked — see PROJECT.md §5's "No hard locks" section for the reversal
+   note. Not reachable yet, genuinely: no scale-up hover (nothing is
+   about to happen on click), red border instead of the neutral default,
+   dimmer than an open bubble so it reads as further away, not just
+   "less important". */
+.roadmap-node.ahead .roadmap-bubble {
+  opacity: 0.55; cursor: not-allowed; border-color: rgba(239,68,68,0.55);
+}
+.roadmap-node.ahead .roadmap-bubble:hover { opacity: 0.85; transform: translate(-50%, -50%); }
+
+/* Hover glow rings, colour-coded by what pointing at this bubble means:
+   green = open and yours to study now, red = locked (see the
+   data-explain tooltip below for why, and .course-card.restricted for
+   the same treatment one screen up, on an unavailable course). Layered
+   on top of the "current" bubble's permanent accent ring, not a
+   replacement for it — a soft outer bloom vs. that ring's tight solid
+   one, so both read at once. */
+.roadmap-node:not(.ahead):not(.restricted) .roadmap-bubble:hover {
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.4), 0 0 22px rgba(16,185,129,0.5);
+}
+.roadmap-node.ahead .roadmap-bubble:hover,
+.roadmap-node.restricted .roadmap-bubble:hover {
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.4), 0 0 22px rgba(239,68,68,0.5);
+}
+
+/* Brief reason a locked bubble is locked — pure CSS, from the
+   data-explain attribute set in library.js, so there's no separate
+   tooltip element to keep in sync. */
+.roadmap-bubble[data-explain]::after {
+  content: attr(data-explain);
+  /* Below the bubble, not above — the first topic in a unit sits right
+     under the topbar, and an above-positioned tooltip ran behind it. */
+  position: absolute; top: calc(100% + 10px); left: 50%;
+  transform: translateX(-50%);
+  width: 170px; padding: 0.55rem 0.65rem; border-radius: 8px;
+  background: var(--bg-surface); border: 1px solid rgba(239,68,68,0.4); color: var(--text-dim);
+  font-size: 0.7rem; font-weight: 500; line-height: 1.35; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s ease; z-index: 10;
+}
+.roadmap-bubble[data-explain]:hover::after { opacity: 1; }
+
+.roadmap-cards-btn {
+  position: absolute; left: 0; top: 0; transform: translate(20px, 20px);
+  width: 26px; height: 26px; border-radius: 50%; padding: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  font-size: 0.8rem; cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.roadmap-cards-btn:hover { border-color: var(--border-accent); }
+
+.roadmap-label {
+  /* Below the cluster ring's own edge (58px radius), not inside it —
+     it used to start at 40px, so the dashed ring cut straight through
+     the text ("eaten by the circles"). */
+  position: absolute; left: 0; top: 0; transform: translate(-50%, 64px);
+  width: 130px; text-align: center; pointer-events: none; z-index: 1;
+  font-size: 0.76rem; font-weight: 600; color: var(--text-dim); line-height: 1.25;
+  text-shadow: 0 0 4px var(--bg-deep), 0 0 8px var(--bg-deep);
+}
+
+/* Milestone reward chip — "career track" styling (Asphalt Legends and
+   similar racing games' reward path), a badge riding on the unit node
+   itself rather than the reward being a silent number change
+   elsewhere. Positioned upper-right of the bubble, out of the way of
+   the topic satellite dots ringing the rest of the node. */
+.roadmap-reward-chip {
+  position: absolute; left: 0; top: 0; z-index: 3;
+  transform: translate(16px, -40px);
+  padding: 0.15rem 0.4rem; border-radius: 999px;
+  background: var(--bg-surface); border: 1px solid var(--accent-light);
+  color: var(--accent-light); font-family: var(--mono); font-weight: 700; font-size: 0.62rem;
+  box-shadow: 0 0 8px var(--accent-glow);
+  pointer-events: none; white-space: nowrap;
+}
+/* Claimed stays visible (a milestone already passed is still part of
+   the track's story) but goes inert — same "dim, don't hide" treatment
+   .roadmap-node.completed gives the ring around it. */
+.roadmap-reward-chip.claimed {
+  opacity: 0.4; border-color: var(--border); color: var(--text-dim); box-shadow: none;
+}
+
+/* The course-completion chest at the end of the path — bigger and
+   gold-toned so it reads as the run's actual finish line, not just
+   another stop. */
+.roadmap-chest {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  width: 72px; height: 72px; border-radius: 50%; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 0.1rem;
+  background: var(--bg-card); border: 2px solid rgba(234,179,8,0.55);
+  box-shadow: 0 0 16px rgba(234,179,8,0.3);
+  font-size: 1.5rem;
+}
+.roadmap-chest.claimed { opacity: 0.5; border-color: var(--border); box-shadow: none; }
+.roadmap-chest-amount {
+  font-family: var(--mono); font-weight: 700; font-size: 0.62rem; color: #eab308;
+}
+.roadmap-chest.claimed .roadmap-chest-amount { color: var(--text-dim); }
+.roadmap-chest-label {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, 44px);
+  width: 130px; text-align: center; pointer-events: none;
+  font-size: 0.76rem; font-weight: 700; color: var(--text-dim); line-height: 1.25;
+  text-shadow: 0 0 4px var(--bg-deep), 0 0 8px var(--bg-deep);
+}
+
+.roadmap-chunk-dot {
+  position: absolute; left: 0; top: 0; z-index: 1; padding: 0;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--bg-surface); border: 1.5px solid var(--border);
+  cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease;
+}
+.roadmap-chunk-dot.done { background: var(--green); border-color: var(--green); }
+.roadmap-chunk-dot.locked {
+  cursor: not-allowed; opacity: 0.5; border-color: rgba(239,68,68,0.5);
+}
+.roadmap-chunk-dot:hover { border-color: var(--border-accent); }
+
+@media (max-width: 480px) {
+  .roadmap-bubble { width: 54px; height: 54px; font-size: 1.35rem; }
+  .roadmap-label { width: 108px; transform: translate(-50%, 56px); font-size: 0.7rem; }
+  .roadmap-cards-btn { transform: translate(16px, 16px); }
+  .roadmap-cluster-ring { width: 100px; height: 100px; }
+  .roadmap-reward-chip { transform: translate(12px, -34px); font-size: 0.58rem; }
+  .roadmap-chest { width: 60px; height: 60px; font-size: 1.25rem; }
+  .roadmap-chest-label { width: 108px; transform: translate(-50%, 38px); font-size: 0.7rem; }
+}
+
+/* ============================================
+   Lesson
+   ============================================ */
+.lesson-body { flex: 1; max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem; width: 100%; }
+
+.lesson-progress-bar { flex: 1; max-width: 200px; height: 4px; background: var(--bg-surface); border-radius: 2px; overflow: hidden; margin: 0 1rem; }
+.lesson-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+.chunk-counter { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); font-family: var(--mono); }
+
+.chunk-section { animation: slideUp 0.5s ease; }
+
+.chunk-phase {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.25rem 0.7rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1rem;
+}
+.chunk-phase.explain { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); color: var(--accent-light); }
+.chunk-phase.example { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--yellow); }
+.chunk-phase.quiz    { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--green); }
+
+.chunk-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.25rem; letter-spacing: -0.5px; }
+.chunk-text  { font-size: 0.95rem; line-height: 1.75; color: var(--text-dim); margin-bottom: 1.5rem; }
+.chunk-text strong { color: var(--text); font-weight: 600; }
+
+.analogy-box {
+  background: var(--bg-card); border: 1px solid var(--border-accent);
+  border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
+  padding: 1.25rem; margin-bottom: 1.5rem;
+}
+.analogy-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent-light); margin-bottom: 0.5rem; }
+.analogy-text  { font-size: 0.9rem; color: var(--text-dim); line-height: 1.6; }
+
+.example-box {
+  background: var(--bg-card); border: 1px solid rgba(245,158,11,0.2);
+  border-left: 3px solid var(--yellow); border-radius: var(--radius-sm);
+  padding: 1.25rem; margin-bottom: 1.5rem;
+}
+.example-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--yellow); margin-bottom: 0.75rem; }
+.example-flow  { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.flow-step {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.6rem 0.75rem; background: var(--bg-surface);
+  border-radius: var(--radius-xs); font-size: 0.85rem;
+  color: var(--text-dim); line-height: 1.5;
+}
+.flow-num {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700;
+}
+.flow-step code, .chunk-text code {
+  font-family: var(--mono); font-size: 0.82rem;
+  background: rgba(99,102,241,0.12); color: var(--accent-light);
+  padding: 0.15rem 0.4rem; border-radius: 4px;
+}
+
+/* ============================================
+   Quiz
+   ============================================ */
+.quiz-question { font-size: 1.05rem; font-weight: 600; margin-bottom: 1.25rem; line-height: 1.5; }
+.quiz-options  { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+
+.quiz-opt {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.85rem 1rem; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; transition: all 0.25s ease;
+  font-size: 0.9rem; color: var(--text-dim);
+}
+.quiz-opt:hover { background: var(--bg-card-hover); border-color: var(--border-accent); color: var(--text); }
+.quiz-opt.selected { border-color: var(--accent); background: rgba(99,102,241,0.08); color: var(--text); }
+.quiz-opt.correct  { border-color: var(--green); background: rgba(16,185,129,0.08); color: var(--green); cursor: default; }
+.quiz-opt.wrong    { border-color: var(--red); background: rgba(239,68,68,0.08); color: var(--red); cursor: default; }
+
+.quiz-letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--bg-surface); font-weight: 700; font-size: 0.8rem;
+  flex-shrink: 0; transition: all 0.25s ease;
+}
+.quiz-opt.selected .quiz-letter { background: var(--accent); color: #fff; }
+.quiz-opt.correct .quiz-letter  { background: var(--green); color: #fff; }
+.quiz-opt.wrong .quiz-letter    { background: var(--red); color: #fff; }
+
+/* The Predict phase (renderPredict) uses its own class names —
+   .quiz-option/.qo-letter/.qo-text, not .quiz-opt/.quiz-letter — and
+   these were never actually styled, so every predict question in the
+   app rendered as an unstyled native <button> (light background, no
+   theme colours) instead of matching the real quiz. Predict only
+   appeared on one chunk in the whole app before Units 2-3 put it on
+   every topic's first chunk, which is why it went unnoticed this long.
+   Same visual treatment as .quiz-opt, plus the <button>-specific
+   resets a <div>-based .quiz-opt never needed (font, text-align, full
+   width — buttons don't default to block level the way a div does). */
+.quiz-option {
+  display: flex; align-items: center; gap: 0.75rem; width: 100%;
+  padding: 0.85rem 1rem; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; transition: all 0.25s ease;
+  font: inherit; font-size: 0.9rem; color: var(--text-dim); text-align: left;
+}
+.quiz-option:hover { background: var(--bg-card-hover); border-color: var(--border-accent); color: var(--text); }
+.quiz-option.selected { border-color: var(--accent); background: rgba(99,102,241,0.08); color: var(--text); }
+
+.qo-letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--bg-surface); font-weight: 700; font-size: 0.8rem;
+  flex-shrink: 0; transition: all 0.25s ease;
+}
+.quiz-option.selected .qo-letter { background: var(--accent); color: #fff; }
+.qo-text { flex: 1; }
+
+.quiz-feedback {
+  padding: 1rem 1.25rem; border-radius: var(--radius-sm);
+  font-size: 0.9rem; line-height: 1.6; margin-bottom: 1.5rem;
+  animation: popIn 0.3s ease;
+}
+.quiz-feedback.correct { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); color: var(--green); }
+.quiz-feedback.wrong   { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); color: var(--text-dim); }
+.quiz-feedback .fb-title { font-weight: 700; margin-bottom: 0.3rem; }
+
+/* Same missing-gap fix as .chunk-actions below: this had flex and gap
+   but no margin, so the row sat flush against whatever closed the card
+   above it — the sources box on the explain phase, the steps on the
+   example phase, the answer feedback on both quiz screens. All four
+   uses are the same shape (a button row ending a card), so the margin
+   belongs on the class rather than on each caller. */
+.btn-row {
+  display: flex; gap: 0.75rem; flex-wrap: wrap;
+  margin-top: 1.4rem;
+}
+
+/* ============================================
+   Exam
+   ============================================ */
+.exam-body { flex: 1; max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem; width: 100%; }
+
+.exam-header { text-align: center; margin-bottom: 2rem; animation: slideUp 0.5s ease; }
+.exam-header h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+.exam-header p  { color: var(--text-dim); font-size: 0.9rem; }
+
+.exam-q-counter { text-align: center; font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.exam-question-card { animation: slideUp 0.4s ease; }
+
+/* ============================================
+   Results
+   ============================================ */
+#exam-result { align-items: center; justify-content: center; }
+.result-card { text-align: center; padding: 3rem 2rem; animation: popIn 0.5s ease; }
+.result-icon { font-size: 4rem; margin-bottom: 1rem; }
+.result-card h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; }
+.result-card > p { color: var(--text-dim); font-size: 1rem; margin-bottom: 1.5rem; max-width: 420px; margin-inline: auto; line-height: 1.6; }
+.result-score { font-size: 3rem; font-weight: 900; margin-bottom: 0.75rem; font-family: var(--mono); }
+.result-score.pass { color: var(--green); }
+.result-score.fail { color: var(--red); }
+/* The XP badge and any wisdom quote sit between the score and the
+   buttons — both are conditionally empty, so the gap has to come from
+   the containers themselves rather than the badge's own margin, or an
+   empty result-charge/result-wisdom collapses to zero height and the
+   score's margin alone isn't enough to keep "+N XP" clear of the
+   buttons below it. */
+#result-charge:not(:empty) { margin-bottom: 1.25rem; }
+#result-wisdom:not(:empty) { margin-bottom: 1.5rem; }
+.result-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem; }
+
+/* ============================================
+   Flashcard review — what watering a due plant launches.
+   See garden/GARDEN.md and library.js's buildFlashDeck/renderFlashcard.
+   ============================================ */
+.flashcard-body { flex: 1; max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem; width: 100%; }
+.flashcard-topic {
+  text-align: center; font-family: var(--mono); font-size: 0.78rem;
+  color: var(--text-muted); margin-bottom: 1.25rem; letter-spacing: 0.02em;
+}
+
+/* 3D flip: two faces stacked back-to-back, the card itself rotates. */
+.flashcard {
+  position: relative; min-height: 220px; perspective: 1200px;
+  margin-bottom: 1.5rem; animation: slideUp 0.4s ease;
+}
+.flashcard-face {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 1.75rem; border-radius: var(--radius);
+  background: var(--bg-card); border: 1px solid var(--border);
+  backface-visibility: hidden; transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  font-size: 1.05rem; line-height: 1.5;
+}
+.flashcard-front { transform: rotateY(0deg); font-weight: 600; }
+.flashcard-back {
+  transform: rotateY(180deg); flex-direction: column; gap: 0.75rem;
+  border-color: var(--border-accent);
+}
+.flashcard.flipped .flashcard-front { transform: rotateY(-180deg); }
+.flashcard.flipped .flashcard-back  { transform: rotateY(0deg); }
+/* Free flip back and forth once revealed — reported live: forgetting
+   what was on the other side with no way back to check. */
+.flashcard.flipped { cursor: pointer; }
+.flashcard-answer { font-weight: 700; color: var(--accent-light); }
+.flashcard-explain { font-size: 0.85rem; color: var(--text-dim); font-weight: 400; line-height: 1.6; }
+
+.flashcard-flip-btn { display: flex; width: 100%; justify-content: center; }
+
+/* Four-level self-assessment, replacing the old binary Knew-it /
+   Didn't-know-it row. Worst (Difficult) to best (Known best), left to
+   right — matches CONFIDENCE's own order in library.js. */
+.flashcard-confidence-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.flashcard-conf-btn {
+  flex: 1; min-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  padding: 0.6rem 0.4rem; cursor: pointer; font: inherit; text-align: center;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-card); color: var(--text);
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.flashcard-conf-btn:hover { transform: translateY(-2px); }
+.flashcard-conf-btn .conf-icon { font-size: 1.15rem; }
+.flashcard-conf-btn .conf-label { font-size: 0.72rem; font-weight: 600; }
+.flashcard-conf-btn.conf-difficult:hover { border-color: var(--red); background: var(--red-glow); }
+.flashcard-conf-btn.conf-still-learning:hover { border-color: var(--yellow); background: var(--yellow-glow); }
+.flashcard-conf-btn.conf-has-idea:hover { border-color: var(--cyan); background: var(--cyan-glow); }
+.flashcard-conf-btn.conf-known-best:hover { border-color: var(--green); background: var(--green-glow); }
+
+/* Correct/wrong feedback burst — a quick glow or shake right after
+   "Knew it" / "Didn't know it", before the next card replaces this one
+   (see library.js's answerFlashcard). The glow only needs to touch the
+   visible back face (correct/wrong is only ever marked post-flip) and
+   only animates box-shadow, so it can't fight that face's own rotateY
+   transform. The shake animates the OUTER .flashcard wrapper instead of
+   a face — translating the wrapper moves the whole 3D scene together
+   without overwriting either face's individual rotateY. */
+.flashcard.fc-correct .flashcard-back { animation: fcCorrectGlow 0.32s ease; }
+.flashcard.fc-wrong { animation: fcWrongShake 0.32s ease; }
+@keyframes fcCorrectGlow {
+  0% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+  40% { box-shadow: 0 0 22px 4px var(--green-glow); border-color: var(--green); }
+  100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes fcWrongShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.chunk-subhead {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent, #7dd3fc);
+  margin: 1.6rem 0 0.5rem;
+  opacity: 0.9;
+}
+.chunk-subhead:first-child { margin-top: 0; }
+
+/* Used to sit almost flush against the "See Example"/"See the
+   explanation" button right below it (margin-top only, nothing
+   pushing space underneath) — a plain, low-contrast box directly
+   above a bold gradient button read as one cramped stack rather than
+   two distinct things. Reported live as "sits on top of See Example."
+   Now: real breathing room below, an accent-colored left edge so it
+   reads as its own distinct block rather than a stray footnote, and a
+   bolder label that still stays visually quieter than actual chunk
+   content. */
+.sources-box {
+  margin: 1.5rem 0 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: 3px solid var(--border-accent);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.sources-box:hover { border-left-color: var(--accent); }
+.sources-label {
+  cursor: pointer;
+  display: flex; align-items: center; gap: 0.45rem;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  list-style: none;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.sources-label::-webkit-details-marker { display: none; }
+.sources-label:hover { color: var(--text); }
+.sources-box[open] .sources-label {
+  color: var(--accent-light);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.sources-list {
+  margin: 0;
+  padding: 0.85rem 1rem 1rem 2rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+/* Opaque, unlike .sources-box. That box holds three lines of citations
+   and the drifting clouds behind it read as texture; this one holds five
+   paragraphs, and decor scrolling through a wall of prose is just hard
+   to read. unit-select is not a STUDY_SCREEN, so the decor is not
+   hidden here the way it is in a lesson -- the block covers itself. */
+/* Inside the buy modal the block can be long; let the card scroll
+   rather than overflow the viewport. */
+#course-buy-modal .modal-card {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+#course-buy-modal .course-about { text-align: left; }
+
+/* ---- Course scene (scenes/scene.js, renderCourseScene) ----
+   Above everything else on the course screen, and on the same z-layer
+   as the cards (position + z-index 1): the app's drifting clouds sit at
+   z-index -1 and must pass BEHIND the diorama, not through it. */
+.course-scene {
+  position: relative;
+  z-index: 1;
+  max-width: 940px;
+  margin: -0.4rem auto 0.4rem;
+}
+.course-scene-hint {
+  margin: -0.2rem 0 1.1rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.course-about {
+  margin: 0 0 1.25rem;
+  background: var(--bg-card);
+  position: relative;
+  z-index: 1;
+}
+.course-about-body {
+  padding: 0.9rem 1.2rem 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+.course-about-body p { margin: 0 0 0.85rem; }
+.course-about-body p:last-child { margin-bottom: 0; }
+.course-about-body strong { color: var(--text); font-weight: 600; }
+.course-about-body .ca-for {
+  display: block;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.85rem;
+}
+
+.source-item { margin-bottom: 0.7rem; opacity: 0.82; }
+.source-item:last-child { margin-bottom: 0; }
+.source-ref { display: block; }
+.source-note {
+  display: block;
+  margin-top: 0.15rem;
+  opacity: 0.65;
+  font-style: italic;
+}
+
+/* ── Wisdom reward (v2) ── */
+.wisdom-card {
+  position: relative;
+  margin: 1.75rem auto 0.25rem;
+  max-width: 620px;
+  padding: 2.25rem 2rem 1.75rem;
+  border: 1px solid rgba(167,139,250,0.22);
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(167,139,250,0.09), rgba(255,255,255,0.015));
+}
+.wisdom-mark {
+  position: absolute; top: -0.35rem; left: 1.15rem;
+  font-size: 4.5rem; line-height: 1;
+  color: rgba(167,139,250,0.28); font-family: Georgia, serif;
+  pointer-events: none;
+}
+.wisdom-text {
+  position: relative; margin: 0 0 1.15rem;
+  font-size: 1.12rem; line-height: 1.62; font-style: italic;
+  border: none; padding: 0;
+}
+.wisdom-author { font-weight: 700; font-size: 0.95rem; letter-spacing: 0.01em; }
+.wisdom-source { margin-top: 0.3rem; font-size: 0.76rem; opacity: 0.5; }
+
+/* ── Due for review ── */
+.due-section {
+  margin-bottom: 1.75rem; padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(56,189,248,0.28);
+  border-radius: 16px;
+  background: rgba(56,189,248,0.06);
+}
+.due-header { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; }
+.due-count {
+  margin-left: auto; padding: 0.1rem 0.6rem;
+  border-radius: 999px; background: rgba(56,189,248,0.2);
+  font-size: 0.8rem;
+}
+.due-hint { margin: 0.35rem 0 0.85rem; font-size: 0.82rem; opacity: 0.62; }
+.due-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.due-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 0.9rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(56,189,248,0.35);
+  background: rgba(56,189,248,0.1);
+  color: inherit; font: inherit; font-size: 0.85rem;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.due-chip:hover { background: rgba(56,189,248,0.2); transform: translateY(-1px); }
+.due-banner {
+  margin-bottom: 1rem; padding: 0.7rem 1rem;
+  border-radius: 12px; font-size: 0.88rem;
+  border: 1px solid rgba(56,189,248,0.3); background: rgba(56,189,248,0.08);
+}
+
+/* ── Topic card states ── */
+.topic-card.due { border-color: rgba(56,189,248,0.5); }
+/* Locked, not just "further down the list" — see PROJECT.md §5.
+   overflow:visible overrides .topic-card's overflow:hidden (there for
+   the ::before hover gradient), which would otherwise clip the
+   ::after tooltip below — same fix as .course-card.restricted. */
+.topic-card.ahead {
+  opacity: 0.55; cursor: not-allowed; border-color: rgba(239,68,68,0.4);
+  position: relative; overflow: visible;
+}
+.topic-card.ahead:hover { opacity: 0.75; transform: none; box-shadow: none; }
+.topic-card.ahead::before { display: none; }
+.topic-card.ahead[data-explain]::after {
+  content: attr(data-explain);
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: 200px; padding: 0.55rem 0.65rem; border-radius: 8px;
+  background: var(--bg-surface); border: 1px solid rgba(239,68,68,0.4); color: var(--text-dim);
+  font-size: 0.72rem; font-weight: 500; line-height: 1.35; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s ease; z-index: 10;
+}
+.topic-card.ahead[data-explain]:hover::after { opacity: 1; }
+.topic-badge.ahead-badge { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+
+/* An open, clickable course — a cool, inviting glow distinct from the
+   generic accent hover every other .topic-card gets, so "you can
+   actually enter this one" reads at a glance next to a restricted card. */
+.course-card:not(.restricted):hover {
+  border-color: rgba(6,182,212,0.55);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.25), 0 0 22px rgba(16,185,129,0.35);
+}
+
+/* The one genuine hard-lock in the app (an unavailable course) — same
+   red-glow-with-a-reason treatment as the roadmap's ahead/yellow
+   explanation, see styles/library.css's .roadmap-bubble[data-explain]. */
+.course-card.restricted {
+  cursor: not-allowed; position: relative;
+  overflow: visible; /* .topic-card's overflow:hidden would clip the tooltip below */
+}
+.course-card.restricted:hover {
+  border-color: rgba(239,68,68,0.5);
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.35), 0 0 22px rgba(239,68,68,0.4);
+}
+.course-card.restricted[data-explain]::after {
+  content: attr(data-explain);
+  /* Below the card, not above — above can run behind the fixed topbar
+     when the card sits near the top of the grid (reported: text was
+     showing "beyond scope of vision"). */
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: 190px; padding: 0.55rem 0.65rem; border-radius: 8px;
+  background: var(--bg-surface); border: 1px solid rgba(239,68,68,0.4); color: var(--text-dim);
+  font-size: 0.72rem; font-weight: 500; line-height: 1.35; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s ease; z-index: 10;
+}
+.course-card.restricted[data-explain]:hover::after { opacity: 1; }
+.topic-badge.due-badge { background: var(--accent-glow); color: var(--accent-light); }
+.topic-badge.recommended { background: rgba(167,139,250,0.18); color: #c4b5fd; }
+.topic-badge.ahead-badge { background: rgba(255,255,255,0.06); opacity: 0.7; }
+
+/* ── Weak spots ── */
+.weak-section { margin-bottom: 1.5rem; }
+.weak-hint { margin: -0.35rem 0 0.7rem; font-size: 0.8rem; opacity: 0.6; }
+.weak-row {
+  display: flex; align-items: center; width: 100%;
+  margin-bottom: 0.45rem; padding: 0.7rem 0.95rem;
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 12px;
+  background: rgba(255,255,255,0.025);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.weak-row:hover { background: rgba(255,255,255,0.06); }
+.weak-name { flex: 1; font-size: 0.9rem; }
+.weak-score { font-weight: 700; font-size: 0.88rem; }
+.weak-score.fail { color: #f87171; }
+.weak-score.pass { color: #4ade80; }
+
+/* ── Responsive (library screens only) ── */
+@media (max-width: 600px) {
+  .topic-grid { grid-template-columns: 1fr; }
+  .lesson-body, .exam-body { padding: 1.5rem 1rem; }
+  .chunk-title { font-size: 1.25rem; }
+  .topic-map-body { padding: 1rem; }
+  .module-header { flex-wrap: wrap; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Five-phase chunk flow: predict & recall ── */
+.chunk-phase.predict { color: #c4b5fd; }
+.chunk-phase.recall { color: var(--accent-light); }
+.predict-nudge {
+  margin: -0.2rem 0 1rem; font-size: 0.85rem; line-height: 1.55;
+  color: var(--text-dim); max-width: 60ch;
+}
+.predict-after {
+  margin-top: 1rem; padding: 0.75rem 0.95rem;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.86rem; line-height: 1.55; color: var(--text-dim);
+}
+/* The row of buttons that closes every chunk phase. It had NO rules at
+   all until now, so it sat flush against whatever came before it —
+   most visibly on the predict phase, where the reveal box and the
+   "See the explanation" button touched. Reported from a screenshot.
+
+   One rule fixes all five phases (predict, explain, example, quiz,
+   recall) because they share the class. flex + gap rather than relying
+   on collapsed whitespace between inline buttons, which is what the
+   two-button rows were doing; alignment stays left, as it already
+   rendered. Matches .sim-actions in the mock exam. */
+.chunk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.recall-input {
+  width: 100%; padding: 0.85rem 1rem; margin-top: 0.9rem;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: var(--font); font-size: 0.95rem; line-height: 1.6;
+  resize: vertical; outline: none;
+  transition: border-color 0.2s ease;
+}
+.recall-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.recall-model {
+  margin-top: 1.1rem; padding: 1rem 1.1rem;
+  border: 1px solid var(--border-accent); border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+.rm-label {
+  font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 0.4rem;
+}
+.rm-text { font-size: 0.92rem; line-height: 1.65; margin-bottom: 0.9rem; }
+.rm-points { margin: 0 0 0 1.1rem; font-size: 0.88rem; line-height: 1.7; color: var(--text-dim); }
+.rm-nudge {
+  margin-top: 0.9rem; font-size: 0.82rem; line-height: 1.55;
+  color: var(--yellow); opacity: 0.85;
+}
+
+/* ── Custom flashcard deck builder ── */
+.deck-builder-entry {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  width: 100%; margin-bottom: 1.25rem; padding: 0.7rem 1rem;
+  border-radius: var(--radius-sm); cursor: pointer;
+  border: 1px dashed var(--border-accent); background: var(--bg-card); color: var(--text-dim);
+  font: inherit; font-size: 0.85rem; font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.deck-builder-entry:hover { border-color: var(--accent); color: var(--text); background: var(--accent-glow); }
+.deck-builder-entry.locked {
+  cursor: not-allowed; opacity: 0.55; border-color: rgba(239,68,68,0.4);
+}
+.deck-builder-entry.locked:hover { border-color: rgba(239,68,68,0.55); color: var(--text-dim); background: var(--bg-card); }
+.deck-builder-entry-sub { font-size: 0.74rem; font-weight: 400; color: var(--text-muted); }
+
+.deck-builder-body { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+.deck-builder-intro { font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 1.1rem; }
+
+.deck-unit-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+.deck-unit-pill {
+  padding: 0.5rem 1rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted);
+  font: inherit; font-size: 0.82rem; font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.55;
+}
+.deck-unit-pill:hover { border-color: var(--border-accent); color: var(--text); }
+.deck-unit-pill.active { border-color: var(--accent); background: var(--accent-glow); color: var(--text); opacity: 1; }
+.deck-unit-pill.locked {
+  opacity: 0.4; cursor: not-allowed; border-color: rgba(239,68,68,0.35); color: var(--text-muted);
+}
+.deck-unit-pill.locked:hover { border-color: rgba(239,68,68,0.35); color: var(--text-muted); }
+
+/* Optional confidence filter, same pill shape as the unit row above but
+   its own row so the two selections read as separate controls. Empty
+   selection (no chip active) = no filter, matches picker.confidenceFilter's
+   own "empty = show everything" default in library.js. */
+.deck-confidence-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+.deck-confidence-filter-label { font-size: 0.78rem; color: var(--text-muted); margin-right: 0.2rem; }
+.deck-conf-chip {
+  padding: 0.4rem 0.85rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted);
+  font: inherit; font-size: 0.78rem; font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.deck-conf-chip:hover { color: var(--text); }
+.deck-conf-chip.conf-difficult.active { border-color: var(--red); background: var(--red-glow); color: var(--text); }
+.deck-conf-chip.conf-still-learning.active { border-color: var(--yellow); background: var(--yellow-glow); color: var(--text); }
+.deck-conf-chip.conf-has-idea.active { border-color: var(--cyan); background: var(--cyan-glow); color: var(--text); }
+.deck-conf-chip.conf-known-best.active { border-color: var(--green); background: var(--green-glow); color: var(--text); }
+
+.deck-topic-section.locked { opacity: 0.5; }
+.deck-topic-section.locked .deck-topic-header { margin-bottom: 0; }
+.deck-topic-section.locked .deck-topic-count { color: rgba(239,68,68,0.7); }
+
+.deck-topic-list { display: flex; flex-direction: column; gap: 1.1rem; }
+.deck-topic-section {
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem 1rem;
+  background: var(--bg-card);
+}
+.deck-topic-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.deck-topic-title { font-size: 0.92rem; font-weight: 700; flex: 1; }
+.deck-topic-count { font-size: 0.75rem; color: var(--text-muted); }
+.deck-topic-toggle-all {
+  padding: 0.3rem 0.7rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-dim);
+  font: inherit; font-size: 0.72rem; font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.deck-topic-toggle-all:hover { border-color: var(--border-accent); color: var(--text); }
+
+.deck-chunk-row { display: flex; flex-direction: column; gap: 0.45rem; }
+.deck-chunk-chip {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-muted);
+  font: inherit; font-size: 0.82rem; text-align: left;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  opacity: 0.6;
+}
+.deck-chunk-chip:hover { border-color: var(--border-accent); color: var(--text); }
+.deck-chunk-chip.selected { opacity: 1; border-color: var(--accent); background: var(--accent-glow); color: var(--text); }
+.dcc-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--text-muted);
+}
+/* Worst-known-first signal, made visible at selection time too — a red
+   dot is exactly the chunk this deck exists to resurface. */
+.deck-chunk-chip.weak .dcc-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.deck-chunk-chip.known .dcc-dot { background: var(--green); }
+.deck-chunk-chip.new .dcc-dot { background: var(--text-muted); }
+.dcc-title { flex: 1; }
+.dcc-new-badge {
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem; border-radius: 999px;
+  background: rgba(56,189,248,0.15); color: #7dd3fc;
+  flex-shrink: 0;
+}
+
+.deck-builder-footer { margin-top: 1.75rem; display: flex; justify-content: center; }
+#btn-start-custom-deck:disabled {
+  opacity: 0.4; cursor: not-allowed; box-shadow: none;
+}
+
+@media (max-width: 600px) {
+  .deck-builder-body { padding: 1rem; }
+  .deck-topic-header { flex-wrap: wrap; }
+}
+
+/* ── Course contract modal ── */
+.contract-card {
+  max-width: 480px; text-align: center;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-surface) 100%);
+}
+.contract-seal { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.contract-subtitle { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1.25rem; font-weight: 600; }
+.contract-body { text-align: left; font-size: 0.85rem; line-height: 1.6; color: var(--text-dim); margin-bottom: 1.25rem; }
+.contract-body > p { margin-bottom: 0.5rem; }
+.contract-terms { margin: 0 0 0.75rem 1.1rem; }
+.contract-terms li { margin-bottom: 0.3rem; }
+.contract-plant-note { font-size: 0.8rem; color: var(--text-dim); margin: 0 0 0.4rem; }
+.contract-fineprint { font-size: 0.72rem; font-style: italic; color: var(--text-muted); }
+
+.contract-pad-wrap {
+  position: relative; margin-bottom: 1.25rem;
+  border: 1px dashed var(--border-accent); border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.03); overflow: hidden;
+}
+.contract-canvas { display: block; width: 100%; height: 140px; touch-action: none; cursor: crosshair; }
+.contract-pad-line {
+  position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;
+  font-size: 0.75rem; color: var(--text-muted); pointer-events: none;
+  opacity: 0.5;
+}
+
+@media (max-width: 500px) {
+  .contract-card { padding: 1.5rem; }
+}
+
+/* ── Stats: course menu ──
+   A row of course buttons ("All courses" first) that filters the list
+   below, rather than a stack of expandable sections. Chosen partly
+   because it answers "show me this course" in one tap, and partly
+   because <details> could not be verified in the dev preview at all. */
+.stats-course-menu {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem;
+}
+.stats-course-btn {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.45rem 0.7rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-dim); font: inherit; font-size: 0.82rem; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.stats-course-btn:hover { background: var(--bg-card-hover); color: var(--text); }
+.stats-course-btn.active {
+  background: var(--accent-glow); border-color: var(--accent); color: var(--text); font-weight: 600;
+}
+.stats-course-summary {
+  font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;
+}
+.stats-course-meta { font-size: 0.74rem; color: var(--text-muted); }
+.stats-bucket-title {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin: 0.8rem 0 0.4rem;
+}
+
+/* Library tracks — one row per course direction rather than one pile.
+   The heading only renders when its track has courses, so an empty
+   direction costs nothing. */
+.course-track-title {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin: 1.4rem 0 0.6rem;
+}
+.course-track-title:first-child { margin-top: 0; }
+.course-track-grid { margin-bottom: 0.4rem; }
+
+/* ================= Mock exam (library/exam-sim.js) =================
+   Reuses .chunk-card, .quiz-question and .quiz-option so a question
+   under the clock looks like a question anywhere else — the difference
+   between rehearsal and study should be the clock and the stakes, not
+   a second visual language to learn. */
+
+.sim-intro { max-width: 46rem; margin: 0 auto; text-align: center; padding: 1.5rem 0 2rem; }
+.sim-intro-icon { font-size: 2.6rem; margin-bottom: 0.6rem; }
+.sim-intro-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.9rem; }
+.sim-intro-body { color: var(--text-dim); line-height: 1.65; margin-bottom: 1rem; text-align: left; }
+.sim-intro-note { color: var(--text-muted); font-size: 0.85rem; line-height: 1.55; margin-bottom: 1.4rem; }
+.sim-begin { min-width: 14rem; }
+
+/* Bar: counter left, clock right. The clock is tabular-nums so the
+   digits stop jittering as the seconds tick — at 1Hz a shifting
+   baseline is surprisingly hard to ignore while you are reading. */
+.sim-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-bottom: 0.7rem;
+}
+.sim-counter { color: var(--text-dim); font-size: 0.9rem; font-weight: 600; }
+.sim-clock {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.15rem; font-weight: 700;
+  padding: 0.2rem 0.6rem; border-radius: 0.5rem;
+  background: var(--bg-surface); border: 1px solid var(--border);
+}
+.sim-clock.urgent {
+  color: #f87171; border-color: rgba(248, 113, 113, 0.5);
+  animation: sim-pulse 1s ease-in-out infinite;
+}
+@keyframes sim-pulse { 50% { opacity: 0.55; } }
+
+/* One dot per question: answered, current, untouched. Doubles as
+   navigation, which is what the real test gives you and what makes
+   "come back to it later" a usable strategy rather than a wish. */
+.sim-progress {
+  display: flex; flex-wrap: wrap; gap: 0.3rem;
+  margin-bottom: 1rem; justify-content: center;
+}
+.sim-dot {
+  width: 0.85rem; height: 0.85rem; border-radius: 50%; padding: 0;
+  border: 1px solid var(--border); background: transparent; cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.sim-dot:hover { transform: scale(1.25); }
+.sim-dot.done { background: var(--accent); border-color: var(--accent); }
+.sim-dot.current { box-shadow: 0 0 0 2px var(--accent-glow); border-color: var(--accent); }
+
+.sim-card { margin-bottom: 1rem; }
+.sim-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; margin-top: 1.1rem; flex-wrap: wrap;
+}
+.sim-actions-end { justify-content: center; }
+.sim-unanswered { color: var(--text-muted); font-size: 0.8rem; }
+
+/* Result */
+.sim-result { text-align: center; padding: 1.5rem 1rem 1rem; }
+.sim-result-badge { font-size: 3rem; line-height: 1; margin-bottom: 0.5rem; }
+.sim-result-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.4rem; }
+.sim-result.pass .sim-result-title { color: #4ade80; }
+.sim-result.fail .sim-result-title { color: #f87171; }
+.sim-result-score { font-size: 1.05rem; margin-bottom: 0.25rem; }
+.sim-result-time, .sim-result-timeout { color: var(--text-muted); font-size: 0.85rem; }
+
+.sim-review { max-width: 48rem; margin: 1.5rem auto 0; }
+.sim-review-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.8rem; }
+.sim-review-item {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.8rem;
+}
+.sim-review-line {
+  display: flex; gap: 0.6rem; align-items: baseline;
+  font-size: 0.9rem; line-height: 1.5; margin-top: 0.5rem;
+}
+.sim-review-label {
+  flex: 0 0 auto; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
+}
+.sim-review-line.bad > span:last-child { color: #f87171; }
+.sim-review-line.good > span:last-child { color: #4ade80; }
+.sim-review-why {
+  margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--border);
+  color: var(--text-dim); font-size: 0.87rem; line-height: 1.6;
+}
+
+/* Armed state for the two-step confirmations in the mock exam — see
+   armed() in library/exam-sim.js. Amber rather than red: this is "are
+   you sure", not "something went wrong". */
+.sim-armed {
+  border-color: #fbbf24 !important;
+  color: #fbbf24 !important;
+  font-weight: 700;
+}

@@ -1,0 +1,2578 @@
+/* ============================================
+   Unit6 Dojo — Design System & Styles
+   ============================================ */
+
+:root {
+  --bg-deep: #0a0e1a;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2235;
+  --bg-surface: #151c2e;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-glow: rgba(99, 102, 241, 0.25);
+  --accent-glow-strong: rgba(99, 102, 241, 0.5);
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.2);
+  --red: #ef4444;
+  --red-glow: rgba(239, 68, 68, 0.2);
+  --yellow: #f59e0b;
+  --yellow-glow: rgba(245, 158, 11, 0.2);
+  --cyan: #06b6d4;
+  --cyan-glow: rgba(6, 182, 212, 0.2);
+  --pink: #ec4899;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(99, 102, 241, 0.3);
+  /* Set by core/theme.js on every theme change. The charge bar used to
+     hardcode an indigo strip and a sky-blue fill, so every theme except
+     Indigo Night left it looking pasted in from another app. */
+  --bg-deep-rgb: 10, 14, 26;
+  --bolt-1: #0ea5e9;
+  --bolt-2: #38bdf8;
+  --bolt-3: #7dd3fc;
+  --bolt-glow: rgba(56, 189, 248, 0.55);
+  --bg-image: none;
+  /* Set by core/theme.js's applyBgStripe — an independent, rank-gated
+     overlay layered under --bg-image, decoupled from theme choice. */
+  --bg-stripe-image: none;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg-deep);
+  background-image: var(--bg-stripe-image), var(--bg-image);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================
+   Screens & Animations
+   ============================================ */
+.screen { display: none; min-height: 100vh; animation: fadeIn 0.4s ease; }
+.screen.active { display: flex; flex-direction: column; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow-strong); }
+  50%      { box-shadow: 0 0 0 12px transparent; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ============================================
+   Modal Overlay (Profile Setup & Stats)
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  animation: modalIn 0.35s ease;
+  position: relative;
+}
+
+.modal-card-wide {
+  max-width: 520px;
+  text-align: left;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text);
+  border-color: var(--border-accent);
+}
+
+.modal-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.modal-desc {
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* Administrative Notice list (core/warnings.js). Red-tinted rather than
+   accent-tinted: this is the one modal that must not look like the rest
+   of the app's chrome, and --red is already the app's "this is serious"
+   colour. Scrolls rather than growing, so a user with a long history
+   still gets a modal that fits on a phone. */
+.warning-list {
+  max-height: 34vh; overflow-y: auto;
+  margin-bottom: 1.4rem; text-align: left;
+  display: flex; flex-direction: column; gap: 0.6rem;
+}
+.warning-item {
+  padding: 0.7rem 0.85rem;
+  background: var(--red-glow);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius-sm);
+}
+.warning-item-msg {
+  font-size: 0.88rem; color: var(--text); line-height: 1.5;
+  /* Operator-typed text: wrap it rather than letting one long unbroken
+     string push the modal wider than the screen. */
+  overflow-wrap: anywhere;
+}
+.warning-item-date {
+  margin-top: 0.35rem;
+  font-size: 0.7rem; color: var(--text-muted);
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 1rem;
+  transition: border-color 0.25s ease;
+}
+.modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.modal-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Profile Badge (Top-right)
+   ============================================ */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: var(--font);
+  color: var(--text-dim);
+}
+.profile-badge:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-accent);
+  color: var(--text);
+}
+
+.profile-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.profile-name-display {
+  font-size: 0.8rem;
+  font-weight: 600;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pinned badges (up to 3) — set by core/profile.js's updateProfileBadge,
+   picked from library/stats.js's Badges grid. Empty when nothing's
+   pinned, so it costs no layout space by default. */
+.profile-pins { display: flex; gap: 0.2rem; }
+.pin-icon { font-size: 0.85rem; line-height: 1; }
+
+/* Patron star — a support-recognition badge, not an earned achievement,
+   so it lives next to the name rather than in .profile-pins. Genuinely
+   different per tier, not just a subtle glow behind the same gold
+   emoji (that read as "the same star" — flagged explicitly). Tier 1
+   is desaturated + pushed toward blue-white (a "silver" star, distinct
+   from tier 2's natural gold ⭐); tier 3 drops the star shape entirely
+   for a medal icon, so it's unmistakably a different, higher tier. */
+.profile-patron-star { font-size: 0.85rem; line-height: 1; }
+.profile-patron-star.tier-1 {
+  filter: grayscale(1) brightness(1.6) sepia(0.35) hue-rotate(170deg) saturate(3)
+          drop-shadow(0 0 3px rgba(148, 197, 255, 0.7));
+}
+.profile-patron-star.tier-2 { filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.8)) saturate(1.3); }
+.profile-patron-star.tier-3 { filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.85)) saturate(1.3); }
+
+/* ============================================
+   Profile Dropdown
+   ============================================ */
+.profile-dropdown {
+  position: fixed;
+  top: 60px;
+  right: 1rem;
+  width: 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  z-index: 500;
+  animation: modalIn 0.2s ease;
+  padding: 0.75rem;
+}
+
+.pd-header { padding: 0.25rem 0 0.5rem; }
+.pd-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.pd-name-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pd-name-input {
+  flex: 1;
+  padding: 0.45rem 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.pd-name-input:focus { border-color: var(--accent); }
+
+.pd-save-btn {
+  padding: 0.45rem 0.65rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.pd-save-btn:hover { background: var(--accent-light); }
+
+.pd-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+
+.pd-wallet-note { font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--green); }
+.pd-avatars-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem;
+}
+.pd-avatar-swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  padding: 0.4rem 0.2rem; cursor: pointer; font: inherit;
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  background: var(--bg-surface); color: var(--text);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pd-avatar-swatch:hover { transform: translateY(-1px); }
+.pd-avatar-swatch.active { border-color: var(--accent); background: var(--accent-glow); }
+.pd-avatar-icon { font-size: 1.15rem; }
+.pd-avatar-price { font-size: 0.62rem; font-family: var(--mono); color: var(--text-muted); }
+
+.pd-profiles-list {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.pd-profile-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-xs);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pd-profile-item:hover { background: var(--bg-surface); color: var(--text); }
+.pd-profile-item.active { color: var(--accent-light); font-weight: 600; }
+.pd-profile-item .pd-topics-done {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pd-action {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pd-action:hover { background: var(--bg-surface); color: var(--text); }
+
+/* ============================================
+   Landing Screen
+   ============================================ */
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, var(--accent-glow) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(16,185,129,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 30% 25% at 15% 70%, rgba(236,72,153,0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#landing {
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.landing-content {
+  text-align: center;
+  z-index: 1;
+  padding: 2rem;
+  animation: slideUp 0.7s ease;
+}
+
+.logo-glow {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: 0.5;
+  animation: float 4s ease-in-out infinite;
+}
+
+.landing-title {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+
+.accent {
+  background: linear-gradient(135deg, var(--accent-light), var(--green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-sub {
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  margin-bottom: 2rem;
+  max-width: 480px;
+  margin-inline: auto;
+  line-height: 1.6;
+}
+
+.landing-features {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.feat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  transition: all 0.3s ease;
+}
+.feat:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-card-hover);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+.feat-icon { font-size: 1.1rem; }
+
+.landing-hint {
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* The playable course scene on the start screen (core/boot.js). It
+   replaces the floating orb as the picture: two things competing for
+   "the image on this page" read as neither. */
+.landing-scene {
+  position: relative;
+  z-index: 1;
+  width: min(580px, 94vw);
+  margin: 0.6rem auto 0;
+}
+.landing-scene:empty { display: none; }
+.landing-scene-caption {
+  margin: -0.6rem 0 1.1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.landing-content.has-scene .logo-glow { display: none; }
+.landing-content.has-scene .landing-sub { margin-bottom: 1.4rem; }
+
+/* ============================================
+   Shared layout utilities
+   Used by settings, garden, shop and games.
+   They live here rather than in one branch's sheet
+   because several branches use them.
+   ============================================ */
+.settings-body, .garden-body {
+  max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem;
+}
+.settings-section { margin-bottom: 2.25rem; }
+
+/* Generic "that didn't work" feedback — a purchase you can't afford, a
+   pin slot that's full. Distinct from the wallet/crash-stage shakes
+   above, which are scoped to their own specific elements/animations. */
+.shake { animation: genericShake 0.35s ease; }
+@keyframes genericShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+/* The negative top margin exists to tuck a hint under a section title.
+   It used to be unconditional, which pulled the hint UP INTO whatever
+   preceded it — under the Hi-Lo and Crash stake rows it overlapped the
+   input and the Deal button. Now it only applies after a title. */
+.settings-hint {
+  margin: 0.25rem 0 0.9rem; font-size: 0.82rem; color: var(--text-dim);
+  line-height: 1.5;
+}
+.stats-section-title + .settings-hint { margin-top: -0.35rem; }
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 2rem;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow-strong); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.btn-ghost:hover { background: var(--bg-card); color: var(--text); border-color: var(--border-accent); }
+
+.arrow { transition: transform 0.3s ease; }
+.btn-primary:hover .arrow { transform: translateX(4px); }
+
+/* ============================================
+   Top Bar
+   ============================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  /* Was a hardcoded rgba(10,14,26,...) — the Indigo Night --bg-deep
+     baked in as a literal, so every OTHER theme's screens (lesson, exam,
+     settings, ...) wore an indigo-dark strip regardless of what was
+     picked. Broke outright on light themes (dark bar, dark-on-light
+     text everywhere else). Same fix charge-bar/vitals-strip already had:
+     read --bg-deep-rgb instead of a copy of one theme's value. */
+  background: rgba(var(--bg-deep-rgb), 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.progress-ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.progress-ring { transform: rotate(-90deg); }
+.progress-ring-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+.progress-ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 125.66;
+  stroke-dashoffset: 125.66;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.progress-pct { font-size: 0.75rem; font-weight: 700; color: var(--accent-light); }
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 600px) {
+  .landing-features { flex-direction: column; align-items: center; }
+  .profile-name-display { display: none; }
+  .profile-dropdown { right: 0.5rem; width: calc(100vw - 1rem); max-width: 300px; }
+}
+
+/* ── Multi-block explanations & source citations (modules 5+) ── */
+
+/* ── Lightning charge bar ──
+   Collapsed by default (just the rank chip: insignia + full name, small)
+   so it reads as a status indicator, not a permanent progress bar taking
+   a full row. The track and XP number only reveal on hover or a few
+   seconds after an XP gain — see .charge-expand and core/hud.js's
+   revealBar(). Only ONE name label exists — it used to also repeat as an
+   abbreviation, which read as a duplicate ("GEN General"). Height is
+   fixed explicitly (not padding-derived) so it never grows when the
+   expand panel opens; .vitals-strip's `top` and #app>.screen's
+   padding-top are both keyed off this same height. */
+.charge-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  height: 2.3rem;
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0 0.9rem;
+  background: rgba(var(--bg-deep-rgb), 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s ease;
+}
+.charge-bar.pulse { box-shadow: 0 0 24px var(--accent-glow-strong); }
+
+.rank-chip {
+  display: flex; align-items: center; gap: 0.35rem;
+  background: none; border: none; padding: 0.15rem 0.3rem; margin: 0 -0.3rem;
+  border-radius: 999px; cursor: pointer; color: inherit; font: inherit;
+}
+.rank-chip:hover, .rank-chip:focus-visible { background: rgba(255, 255, 255, 0.07); }
+.rank-insignia { display: flex; line-height: 0; }
+.rank-insignia svg { display: block; }
+.rank-name {
+  font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+  white-space: nowrap;
+}
+.hud-nickname {
+  font-size: 0.68rem; font-weight: 500; color: var(--text-muted);
+  white-space: nowrap;
+}
+.hud-nickname:not(:empty)::before { content: "\00b7"; margin-right: 0.35rem; }
+
+/* Collapsed to zero width rather than display:none, so the expand is an
+   animated reveal instead of a layout jump. */
+.charge-expand {
+  display: flex; align-items: center; gap: 0.6rem;
+  max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+  transition: max-width 0.3s ease, opacity 0.2s ease 0.05s;
+}
+.charge-bar:hover .charge-expand,
+.charge-bar:focus-within .charge-expand,
+.charge-bar.show .charge-expand {
+  max-width: 320px; opacity: 1;
+}
+.charge-bolt { font-size: 0.85rem; filter: drop-shadow(0 0 6px var(--bolt-3)); }
+.charge-track {
+  width: 100px; flex: none; height: 7px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+}
+.charge-fill {
+  height: 100%; width: 0%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--bolt-1), var(--bolt-2), var(--bolt-3));
+  box-shadow: 0 0 12px var(--bolt-glow);
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.charge-bar.full .charge-fill {
+  background: linear-gradient(90deg, var(--bolt-2), var(--bolt-3), var(--bolt-2));
+  animation: chargeFull 2.4s linear infinite;
+  background-size: 200% 100%;
+}
+@keyframes chargeFull { to { background-position: 200% 0; } }
+.charge-value {
+  font-family: var(--mono); font-size: 0.68rem;
+  color: var(--text-dim); min-width: 52px; text-align: right;
+}
+
+/* Nothing here ever shrank or wrapped on a narrow screen — the bar is a
+   fixed-width row (left:0;right:0) but its children (icon + rank name +
+   profile nickname + track + value) were never capped, so a long rank
+   name ("Senior Research Coordinator") plus the expanded track pushed
+   the XP value off the right edge of the viewport entirely, reported
+   live as "mobile version's xp bar doesn't fit fully". Nickname is
+   secondary info (visible in Career/Settings too) so it's the first
+   thing to go; the track shrinks as a second line of defense for a
+   still-long rank name. */
+@media (max-width: 420px) {
+  .hud-nickname { display: none; }
+  .rank-name { max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+  .charge-track { width: 64px; }
+  .charge-bar { gap: 0.4rem; padding: 0 0.6rem; }
+  .charge-expand { gap: 0.4rem; }
+}
+
+/* ── Streak badge ──
+   Pinned to the far right of the charge bar (margin-left:auto — it's the
+   only item after .charge-expand, so it always lands at the end of the
+   flex row regardless of whether the expand panel is open). */
+/* display:none/flex toggled inline by JS (renderStreak), same pattern as
+   #charge-bar / #vitals-strip — the class only sets what applies once shown. */
+.streak-chip {
+  align-items: center; gap: 0.3rem;
+  margin-left: auto; background: none; border: none;
+  padding: 0.15rem 0.4rem; border-radius: 999px;
+  cursor: pointer; color: inherit; font: inherit;
+}
+.streak-chip:hover, .streak-chip:focus-visible { background: rgba(255, 255, 255, 0.07); }
+.streak-icon { font-size: 0.85rem; filter: drop-shadow(0 0 5px rgba(251, 146, 60, 0.55)); }
+.streak-count {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  color: var(--text-dim);
+}
+
+.streak-popover {
+  /* z-index 65 used to lose to a screen's own .topbar (position: sticky
+     forms its own stacking context, so a bare z-index number here isn't
+     compared against it directly — the popover rendered but painted
+     UNDER the topbar, invisible except for a sliver, reported live on
+     the Token Shop screen: "the popup isn't visible as it's under the
+     dollar wallet and the bar itself"). This popover is meant to sit
+     above EVERY screen's chrome unconditionally, so it needs a value
+     safely past anything a screen defines, not just past the vitals
+     strip (59) it was originally sized against. */
+  position: fixed; z-index: 500; min-width: 180px;
+  padding: 0.7rem 0.85rem; border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 0.78rem; color: var(--text-dim); line-height: 1.5;
+  animation: popIn 0.15s ease;
+}
+.streak-popover strong { color: var(--text); }
+
+.streak-toast-layer {
+  position: fixed; top: 2.5rem; right: 0.7rem; z-index: 71;
+  display: flex; flex-direction: column; gap: 0.4rem; pointer-events: none;
+}
+.streak-toast {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 0.8rem; border-radius: 999px;
+  background: var(--bg-card); border: 1px solid rgba(251, 146, 60, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font-size: 0.8rem; font-weight: 700; color: var(--text);
+  transform: translateY(-8px); opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+}
+.streak-toast.in { transform: translateY(0); opacity: 1; }
+
+/* Save-failure warning (core/hud.js's warnSaveFailed). Deliberately
+   unlike the celebration toasts it shares a layer with: squared off
+   rather than pill-shaped, red rather than streak-orange, wraps to
+   multiple lines, and carries its own dismiss button because it never
+   auto-hides. Losing progress should not look like a confetti popup. */
+.streak-toast.save-failed {
+  align-items: flex-start; gap: 0.55rem;
+  max-width: min(340px, calc(100vw - 2rem));
+  padding: 0.7rem 0.85rem; border-radius: var(--radius-sm);
+  border-color: rgba(239, 68, 68, 0.55);
+  background: var(--bg-surface);
+  font-weight: 500; line-height: 1.4; text-align: left;
+  white-space: normal;
+}
+.streak-toast.save-failed strong { color: #fca5a5; font-weight: 700; }
+.save-failed-x {
+  margin-left: auto; flex: none; padding: 0 0.15rem;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font: inherit; font-size: 0.85rem; line-height: 1;
+}
+.save-failed-x:hover { color: var(--text); }
+
+/* Bar height changed 2.1rem -> 2.3rem overall (shrunk to 1.9rem for the
+   collapse, then grown to 2.3rem to fit a bigger rank-insignia icon);
+   .vitals-strip's `top` tracks the same value, so this keeps the same
+   clearance below THAT, not just the charge bar — vitals-strip sits
+   under it when survival is unlocked. */
+#app > .screen { padding-top: 2.8rem; }
+
+/* ---- Lobby decorations (shop/decor.js) ----
+   Fixed, z-index -1 so cards/screens (default position:static, so they
+   paint on top of positioned siblings regardless of DOM order) always
+   sit above the decorations, same relationship body's own background
+   already has with the app. Each piece is hidden by default and shown
+   only when its exact id is a token in html[data-bg-decor] — set by
+   core/theme.js's applyBgDecors, `~=` matches one word out of the
+   space-separated list of everything currently toggled on. */
+#bg-decor-layer { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+/* Clouds. This layer sat ABOVE the app (z-index 55) so clouds could be
+   clicked — but with clicks now resolved by rect hit-testing in
+   shop/decor.js instead of the browser's hit-tester, being on top buys
+   nothing and costs real damage: a cloud drifting across the lobby
+   washed over the menu tiles (reported, with the Library tile circled).
+   Back behind the app, where background art belongs. Poking still works
+   — it never relied on stacking order. */
+#bg-decor-front { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+/* :where() so this hide rule contributes ZERO specificity — written as
+   a bare `#bg-decor-layer > *` it scores (1,0,0) on the id and beats
+   every reveal rule below (0,2,1), silently hiding all decorations
+   even when their token is present. Caught live. */
+/* :not(.fx-bat) — bats are injected into this layer at runtime (behind
+   the moon, see shop/decor.js's spawnBehindMoon) and are not decorations
+   toggled by data-bg-decor, so this blanket hide would swallow them.
+   It did: they spawned correctly, in the right order, display:none. */
+:where(#bg-decor-layer, #bg-decor-front) > *:not(.fx-bat) { display: none; }
+
+/* ---- Study mode: scenery off while reading ----
+   html[data-study] is set by core/core.js's showScreen for the lesson,
+   exam and flashcard screens only. The decorations are already behind
+   the app (z-index -1) and were never covering anything — but a study
+   card is transparent, so a cloud drifting behind a paragraph reads as
+   a cloud drifting THROUGH it, and the stars land inside the heading.
+   Reported from a phone, and it is worst exactly where it matters most.
+
+   `visibility` rather than `display`, and on the LAYER rather than its
+   children: display:none on #bg-decor-layer would drop the clouds out
+   of layout, and shop/decor.js positions its click hit-boxes from the
+   live element rects — poking a cloud after leaving a lesson would aim
+   at stale coordinates. visibility keeps the geometry and only stops
+   the paint. The transition means walking into a chunk fades the sky
+   out rather than snapping it off.
+
+   Not a setting. Someone who equipped clouds wants them in the lobby,
+   which is where they still are; nobody equips scenery in order to
+   read through it.
+
+   Applied to the LAYER, not to its children: the children are
+   display:none until their token is present, and the scenery SVGs are
+   nested rather than direct children, so a `> *` rule would miss the
+   horizon band. visibility cascades to every descendant at any depth.
+
+   visibility rather than display, because shop/decor.js hit-tests
+   cloud clicks against live element rects — display:none would collapse
+   those to zero and leave poking aimed at stale coordinates once the
+   lesson closed. */
+:where(#bg-decor-layer, #bg-decor-front, #decor-fx) {
+  transition: opacity 0.28s ease, visibility 0s linear 0s;
+}
+html[data-study] :where(#bg-decor-layer, #bg-decor-front, #decor-fx, #brand-watermark) {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0s linear 0.28s;
+}
+html[data-bg-decor~="usa_stars"]  .decor-usa_stars,
+html[data-bg-decor~="usa_eagles"] .decor-usa_eagles,
+/* :not(.cloud-day) matters — the day-only six must stay hidden at night,
+   and this general reveal would otherwise show all twelve regardless of
+   theme (it did, briefly). */
+html[data-bg-decor~="clouds"]     .decor-clouds:not(.cloud-day) { display: block; }
+
+/* One decoration, two faces: moon at night, sun by day. The `moon` id
+   owns the slot in both cases. Split on data-sky, which is its OWN
+   setting (data/db.js's getSky) rather than a reading of whether the
+   theme is light or dark — those were conflated at first, which meant
+   picking a colour scheme silently changed the time of day. */
+html[data-bg-decor~="moon"][data-sky="night"] .decor-moon { display: block; }
+html[data-bg-decor~="moon"][data-sky="day"]   .decor-sun  { display: block; }
+
+/* Daytime sky: no stars while the sun is up — they read as a rendering
+   fault in broad daylight. The sky doesn't just get emptier, though;
+   the six day-only clouds below take their place. Placed AFTER the
+   reveal rule above so it wins on source order at equal specificity. */
+html[data-sky="day"] .decor-usa_stars { display: none; }
+html[data-bg-decor~="clouds"][data-sky="day"] .decor-clouds.cloud-day { display: block; }
+
+/* ---- Moon ----
+   Top-right, mirroring the stars' top-left corner. The halo is a real
+   element rather than a filter glow so it can breathe on its own timing
+   while the disc holds still. */
+/* overflow visible for the same reason as the sun below — the halo
+   breathes past the viewBox edge.
+   top:5.6rem, not 4rem: at 4rem the disc overlapped the vitals strip
+   (which ends at ~77px), so the chips sat on top of the moon. The chips
+   correctly won the click — they're UI — but that made the moon's upper
+   third un-pokeable and clicking it opened the Shop instead. Measured,
+   then moved below the strip. The sun and the day/night switch share
+   this offset so the three stay stacked. */
+.decor-moon { position: absolute; top: 5.6rem; right: 2.5rem; width: 108px; height: 108px; overflow: visible; }
+.decor-moon .moon-disc  { fill: #eef0f6; }
+.decor-moon .moon-halo  { fill: #dbe4ff; opacity: 0.13; animation: moon-breathe 6.5s ease-in-out infinite; }
+.decor-moon .moon-craters circle { fill: #c3c8d8; opacity: 0.75; }
+@keyframes moon-breathe {
+  0%, 100% { opacity: 0.10; transform: scale(0.94); transform-origin: 50% 50%; }
+  50%      { opacity: 0.20; transform: scale(1.06); transform-origin: 50% 50%; }
+}
+
+/* ---- Sun (the Moon decoration's light-theme face) ----
+   Same position and size as the moon so switching theme doesn't shift
+   the composition. Warm and low-contrast: on a light background a solid
+   yellow disc is far louder than a pale moon is on a dark one, so this
+   is deliberately softer than a "correct" sun colour would be. */
+/* The sun GLOWS at rest. The first version reused the moon's halo pulse
+   (0.10–0.20 opacity) and a 44s ray rotation, which is animation you
+   can measure but not see — reported as "static and doesn't glow unless
+   clicked". A star should look lit before you touch it, so: a real
+   bloom via drop-shadow, a halo that pulses across a range you can
+   actually perceive, and rays turning ~2.5x faster. */
+.decor-sun {
+  position: absolute; top: 5.6rem; right: 2.5rem; width: 108px; height: 108px;
+  /* An <svg> clips to its viewBox by default, and the halo scales past
+     it (r44 -> r64 on the poke flare), so the flare was being sliced off
+     square — "dashes into a square box and gets cut", reported. Nothing
+     here is meant to stay inside the box. */
+  overflow: visible;
+  animation: sun-bloom 4.5s ease-in-out infinite;
+}
+@keyframes sun-bloom {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(245, 170, 60, 0.45)); }
+  50%      { filter: drop-shadow(0 0 22px rgba(255, 150, 40, 0.75)); }
+}
+.decor-sun .sun-disc {
+  fill: #f7ab2e; opacity: 0.95;
+  transform-origin: 50% 50%;
+  animation: sun-throb 4.5s ease-in-out infinite;
+}
+@keyframes sun-throb {
+  0%, 100% { transform: scale(1);    fill: #f7ab2e; }
+  50%      { transform: scale(1.05); fill: #ffbe4d; }
+}
+.decor-sun .sun-halo {
+  fill: #ffc85e; opacity: 0.3;
+  animation: sun-breathe 4.5s ease-in-out infinite;
+}
+@keyframes sun-breathe {
+  0%, 100% { opacity: 0.22; transform: scale(0.95); transform-origin: 50% 50%; }
+  50%      { opacity: 0.5;  transform: scale(1.14); transform-origin: 50% 50%; }
+}
+/* Idle turn lives on the OUTER group; the burst goes on the inner one.
+   Both clockwise, and because they compose rather than replace each
+   other the poke adds two turns on top of wherever the idle rotation
+   had got to — no jerk backwards to 0deg. */
+.decor-sun .sun-rays-idle { transform-origin: 50% 50%; animation: sun-turn 18s linear infinite; }
+.decor-sun .sun-rays { fill: #f5a623; opacity: 0.8; transform-origin: 50% 50%; }
+@keyframes sun-turn { to { transform: rotate(360deg); } }
+
+/* Poked: spins up like a fan for two turns and throws off more heat.
+   Higher specificity than the idle drift above, so it takes over
+   cleanly and hands back when the class comes off. */
+/* Poked state has to clear the idle glow by a wide margin now that the
+   idle one is actually bright — otherwise the click reads as nothing
+   happening. Every value here is deliberately above its resting range. */
+.decor-sun.sun-spun { animation: sun-bloom-hot 1.5s ease-out 1; }
+@keyframes sun-bloom-hot {
+  0%   { filter: drop-shadow(0 0 12px rgba(245, 170, 60, 0.5)); }
+  35%  { filter: drop-shadow(0 0 46px rgba(255, 110, 20, 1)); }
+  100% { filter: drop-shadow(0 0 12px rgba(245, 170, 60, 0.5)); }
+}
+.decor-sun.sun-spun .sun-rays {
+  opacity: 1;
+  animation: sun-fanspin 1.5s cubic-bezier(0.15, 0.75, 0.2, 1) 1;
+}
+.decor-sun.sun-spun .sun-disc { animation: sun-heat 1.5s ease-out 1; }
+.decor-sun.sun-spun .sun-halo { animation: sun-halo-flare 1.5s ease-out 1; }
+@keyframes sun-fanspin { from { transform: rotate(0deg); } to { transform: rotate(720deg); } }
+@keyframes sun-heat {
+  0%   { fill: #f7ab2e; transform: scale(1); }
+  40%  { fill: #ff6a12; transform: scale(1.16); }
+  70%  { fill: #ff8f24; transform: scale(1.08); }
+  100% { fill: #f7ab2e; transform: scale(1); }
+}
+@keyframes sun-halo-flare {
+  0%   { opacity: 0.3; transform: scale(1); }
+  40%  { opacity: 0.8; transform: scale(1.45); }
+  100% { opacity: 0.3; transform: scale(1); }
+}
+
+/* The heat itself — a warm wave pushing outward past the disc. */
+.fx-heat {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,138,43,0.5) 0%, rgba(255,190,80,0.28) 45%, transparent 70%);
+  animation: fx-heat 1.5s ease-out forwards;
+}
+@keyframes fx-heat {
+  0%   { opacity: 0;    transform: scale(0.45); }
+  22%  { opacity: 0.95; }
+  100% { opacity: 0;    transform: scale(2.6); }
+}
+
+/* ---- Stars ----
+   top: below the fixed header bar (#app > .screen's 2.8rem padding),
+   not literal viewport y:0 — the header sits there on every screen and
+   would hide this entirely otherwise. Nine stars at three sizes rather
+   than five identical ones: an even grid of same-size stars reads as a
+   UI element, a scattered field of mixed sizes reads as a sky. The
+   whole cluster also drifts, so it isn't pinned rigidly to the corner. */
+.decor-usa_stars {
+  position: absolute; top: 4.5rem; left: 1.5rem; width: 150px; height: 120px;
+  animation: decor-star-drift 19s ease-in-out infinite;
+}
+.decor-usa_stars span {
+  position: absolute; color: #FFD700; line-height: 1;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.55), 0 0 14px rgba(255, 215, 0, 0.25);
+  animation: decor-twinkle 2.6s ease-in-out infinite;
+}
+.decor-usa_stars span::before { content: "\2605"; }
+/* Irregular on purpose — no two stars share a row or column. */
+.decor-usa_stars span:nth-child(1) { top:   2px; left:  46px; font-size: 1.05rem; animation-delay: 0s;    animation-duration: 3.1s; }
+.decor-usa_stars span:nth-child(2) { top:  21px; left:   6px; font-size: 0.6rem;  animation-delay: 0.7s;  animation-duration: 2.4s; }
+.decor-usa_stars span:nth-child(3) { top:  13px; left:  94px; font-size: 0.75rem; animation-delay: 1.3s;  animation-duration: 3.6s; }
+.decor-usa_stars span:nth-child(4) { top:  44px; left:  27px; font-size: 0.9rem;  animation-delay: 0.35s; animation-duration: 2.8s; }
+.decor-usa_stars span:nth-child(5) { top:  38px; left:  68px; font-size: 0.55rem; animation-delay: 1.9s;  animation-duration: 3.3s; }
+.decor-usa_stars span:nth-child(6) { top:  61px; left: 106px; font-size: 0.95rem; animation-delay: 1.1s;  animation-duration: 2.6s; }
+.decor-usa_stars span:nth-child(7) { top:  76px; left:  14px; font-size: 0.65rem; animation-delay: 2.2s;  animation-duration: 3.8s; }
+.decor-usa_stars span:nth-child(8) { top:  88px; left:  56px; font-size: 0.8rem;  animation-delay: 0.9s;  animation-duration: 3.0s; }
+.decor-usa_stars span:nth-child(9) { top: 100px; left:  92px; font-size: 0.5rem;  animation-delay: 1.6s;  animation-duration: 2.5s; }
+@keyframes decor-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50%      { opacity: 1;   transform: scale(1.15) rotate(8deg); }
+}
+@keyframes decor-star-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(6px, -8px); }
+}
+
+/* ---- Eagles ----
+   Two animations stacked: the <svg> flies the path, the inner <g>
+   flaps. Kept separate so the flight can be linear (steady glide)
+   while the wingbeat eases — one combined animation can't do both. */
+/* Body is a lifted brown, not a true silhouette: an accurate dark
+   eagle against these dark themes disappeared entirely in testing. The
+   pale head does most of the legibility work. */
+.decor-usa_eagles {
+  position: absolute; top: 14%; left: 0; width: 78px; height: 39px;
+  color: #6b5540; opacity: 0.9;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+  /* 27s made a pass easy to miss entirely — at this size the bird has
+     to visibly GO somewhere while you're looking at the screen. */
+  animation: decor-fly 16s linear infinite;
+}
+.decor-usa_eagles .wing, .decor-usa_eagles .eagle-body, .decor-usa_eagles .eagle-tail { fill: currentColor; }
+.decor-usa_eagles .eagle-tail { fill: #f4f1ea; }          /* white tail + head: the bald eagle's two identifying marks */
+.decor-usa_eagles .eagle-head { fill: #f4f1ea; }
+.decor-usa_eagles .eagle-beak { fill: #f0b429; }
+.decor-usa_eagles .wing {
+  transform-box: view-box; transform-origin: 30px 15px;
+  animation: decor-flap 1.5s ease-in-out infinite;
+}
+.decor-usa_eagles .wing-r { animation-name: decor-flap-r; }
+.decor-usa_eagles.eagle-2 {
+  top: 34%; width: 54px; height: 27px; opacity: 0.62;
+  animation-duration: 23s; animation-delay: -9s;
+}
+.decor-usa_eagles.eagle-2 .wing { animation-duration: 1.9s; animation-delay: -0.6s; }
+@keyframes decor-flap {
+  0%, 100% { transform: rotate(-13deg); }
+  50%      { transform: rotate(11deg); }
+}
+@keyframes decor-flap-r {
+  0%, 100% { transform: rotate(13deg); }
+  50%      { transform: rotate(-11deg); }
+}
+/* Crosses the viewport, resets off-screen left at the midpoint so one
+   loop reads as two separate passes at different heights. */
+@keyframes decor-fly {
+  0%     { transform: translate(-15vw, 0); }
+  25%    { transform: translate(45vw, 5vh); }
+  50%    { transform: translate(118vw, -3vh); }
+  50.01% { transform: translate(-15vw, 11vh); }
+  75%    { transform: translate(45vw, 3vh); }
+  100%   { transform: translate(118vw, -5vh); }
+}
+
+/* ---- Clouds ----
+   Three sizes at three speeds, so the layer has depth instead of one
+   flat sheet sliding past: the big near cloud crosses fastest, the
+   small far one crawls. Deliberately low-contrast — this sits behind
+   the whole app and must never compete with card text. */
+/* Clouds are clickable, but they must NEVER capture a click: they float
+   above the app, so `pointer-events: auto` here meant a cloud drifting
+   over a menu ate the tap meant for it ("menu isn't opening what I need
+   if a cloud is passing by" — reported, and entirely self-inflicted).
+   They stay inert to the hit-tester; shop/decor.js instead watches for
+   clicks that hit NO interactive element and only then checks whether
+   one landed on a cloud. Real UI wins by construction, not by luck. */
+/* Opaque enough to actually OCCLUDE. They were 5-9% because they used
+   to render in FRONT of the app and had to stay unobtrusive; behind it
+   that constraint is gone, and at 5% a cloud passing a star hid nothing
+   — the star read as being in front of the cloud (reported). */
+.decor-clouds { position: absolute; color: var(--text); pointer-events: none; }
+.decor-clouds g { fill: currentColor; }
+.decor-clouds.cloud-poked { animation-play-state: paused; transform-origin: 50% 50%; }
+.decor-clouds.cloud-poked g { animation: cloud-squish 0.55s ease-out; }
+@keyframes cloud-squish {
+  0%   { transform: scale(1, 1); }
+  35%  { transform: scale(1.07, 0.87); }
+  70%  { transform: scale(0.97, 1.05); }
+  100% { transform: scale(1, 1); }
+}
+/* Fairy outcome: the cloud thins out to let her leave, then re-forms. */
+.decor-clouds.cloud-fading { transition: opacity 0.7s ease; opacity: 0.012 !important; }
+/* Six, spread across the height and staggered so the sky is never
+   empty and never evenly spaced: the big near ones cross fastest, the
+   small far ones crawl. Negative delays start each mid-journey rather
+   than queuing them all at the left edge on load. */
+.decor-clouds.cloud-1 { top:  9%; width: 190px; opacity: 0.42;  animation: decor-drift 62s  linear infinite; }
+.decor-clouds.cloud-2 { top: 27%; width: 130px; opacity: 0.34;  animation: decor-drift 88s  linear infinite; animation-delay: -30s; }
+.decor-clouds.cloud-3 { top: 55%; width:  90px; opacity: 0.26;  animation: decor-drift 124s linear infinite; animation-delay: -70s; }
+.decor-clouds.cloud-4 { top: 17%; width: 160px; opacity: 0.32; animation: decor-drift 74s  linear infinite; animation-delay: -48s; }
+.decor-clouds.cloud-5 { top: 40%; width: 110px; opacity: 0.28; animation: decor-drift 102s linear infinite; animation-delay: -18s; }
+.decor-clouds.cloud-6 { top: 68%; width: 210px; opacity: 0.38; animation: decor-drift 56s  linear infinite; animation-delay: -84s; }
+/* The daytime six — interleaved between the originals' heights rather
+   than stacked below them, so doubling reads as a fuller sky instead of
+   a second band. */
+.decor-clouds.cloud-7  { top: 13%; width: 120px; opacity: 0.06;  animation: decor-drift 96s  linear infinite; animation-delay: -12s; }
+.decor-clouds.cloud-8  { top: 22%; width: 175px; opacity: 0.07;  animation: decor-drift 68s  linear infinite; animation-delay: -55s; }
+.decor-clouds.cloud-9  { top: 34%; width: 100px; opacity: 0.05;  animation: decor-drift 112s linear infinite; animation-delay: -90s; }
+.decor-clouds.cloud-10 { top: 47%; width: 200px; opacity: 0.065; animation: decor-drift 60s  linear infinite; animation-delay: -25s; }
+.decor-clouds.cloud-11 { top: 60%; width: 140px; opacity: 0.055; animation: decor-drift 84s  linear infinite; animation-delay: -66s; }
+.decor-clouds.cloud-12 { top: 74%; width: 165px; opacity: 0.07;  animation: decor-drift 72s  linear infinite; animation-delay: -40s; }
+@keyframes decor-drift {
+  0%   { transform: translateX(-22vw); }
+  100% { transform: translateX(122vw); }
+}
+
+/* ---- Scenery (shop/decor.js's SCENES) ----
+   Bottom-anchored horizon, one at a time via html[data-bg-scene]. Sits
+   in the same behind-the-app layer as the decorations. preserveAspect
+   is "none" on the SVGs so the band stretches to any width instead of
+   letterboxing on ultrawide. */
+.decor-scene {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 21vh; min-height: 108px; max-height: 210px;
+  color: var(--accent); display: none;
+}
+html[data-bg-scene="jungle"]  .scene-jungle,
+html[data-bg-scene="river"]   .scene-river,
+html[data-bg-scene="island"]  .scene-island,
+html[data-bg-scene="urban"]   .scene-urban,
+html[data-bg-scene="village"] .scene-village { display: block; }
+/* Two depth bands: the far one washed toward the page background, the
+   near one solid. Doing the distance with opacity rather than two
+   hand-picked colours means it keeps working on every theme. */
+.decor-scene .sc-far  { fill: currentColor; opacity: 0.07; }
+.decor-scene .sc-near { fill: currentColor; opacity: 0.14; }
+.decor-scene .sc-shine  { fill: var(--text); opacity: 0.3; }
+.decor-scene .sc-window { fill: var(--yellow); opacity: 0.75; animation: sc-window-flicker 7s steps(1) infinite; }
+@keyframes sc-window-flicker {
+  0%, 44%  { opacity: 0.75; }
+  45%, 62% { opacity: 0.4; }
+  63%      { opacity: 0.75; }
+}
+
+/* ---- Cloud-poke effects (shop/decor.js) ----
+   Own layer ABOVE the app, unlike the decorations themselves: these are
+   a direct response to a click, so they have to be visible over cards.
+   Under .bolt-layer's z-index 70 so XP feedback still wins. */
+#decor-fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+
+.fx-rain { position: absolute; }
+.fx-rain span {
+  position: absolute; top: 0; width: 1.5px; height: 11px; border-radius: 1px;
+  background: linear-gradient(to bottom, transparent, var(--cyan));
+  opacity: 0; animation: fx-fall 1.05s linear infinite;
+}
+.fx-rain.heavy span { height: 16px; width: 2px; animation-duration: 0.72s; }
+@keyframes fx-fall {
+  0%   { opacity: 0;    transform: translateY(0); }
+  12%  { opacity: 0.85; }
+  100% { opacity: 0;    transform: translateY(var(--fall, 90px)); }
+}
+
+.fx-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: fx-flash 0.62s ease-out; }
+@keyframes fx-flash {
+  0%   { opacity: 0; }
+  8%   { opacity: 0.30; }
+  16%  { opacity: 0.04; }
+  26%  { opacity: 0.22; }
+  100% { opacity: 0; }
+}
+.fx-bolt { position: absolute; width: 24px; animation: fx-bolt 0.62s ease-out; }
+.fx-bolt svg { width: 100%; display: block; }
+.fx-bolt path { fill: #fde68a; filter: drop-shadow(0 0 8px rgba(253, 230, 138, 0.9)); }
+@keyframes fx-bolt {
+  0%, 12%   { opacity: 0; }
+  14%, 30%  { opacity: 1; }
+  34%       { opacity: 0.2; }
+  44%       { opacity: 1; }
+  100%      { opacity: 0; }
+}
+
+/* Rainbow: concentric rings from a radial-gradient, red on the OUTSIDE
+   and violet inside (the real order), each stop soft so the bands wash
+   into each other instead of butting up as hard stripes. Blur takes the
+   last of the edge off; the mask fades the legs out before they reach
+   the horizon, which is what stops it looking like a drawn arch. */
+.fx-rainbow {
+  position: absolute; width: 300px; height: 150px; margin-left: -150px;
+  animation: fx-rainbow 5.2s ease-in-out;
+}
+.fx-rainbow .bow {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle 150px at 50% 100%,
+    transparent 0 60%,
+    rgba(138, 43, 226, 0.30) 62%,
+    rgba(65, 105, 225, 0.34) 67%,
+    rgba(60, 179, 113, 0.34) 73%,
+    rgba(255, 215, 0, 0.38) 79%,
+    rgba(255, 140, 0, 0.36) 85%,
+    rgba(220, 60, 50, 0.30) 90%,
+    transparent 95%);
+  filter: blur(3px);
+  -webkit-mask-image: linear-gradient(to top, transparent 2%, #000 34%);
+  mask-image: linear-gradient(to top, transparent 2%, #000 34%);
+}
+@keyframes fx-rainbow {
+  0%       { opacity: 0; transform: scale(0.9); }
+  22%, 68% { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; transform: scale(1.03); }
+}
+
+/* ---- Poke a bird: a feather comes loose and the bird bolts ---- */
+.fx-feather { position: absolute; width: 14px; margin-left: -7px; animation: fx-feather-fall 3.4s ease-in forwards; }
+.fx-feather svg { width: 100%; display: block; }
+.fx-feather .fe-vane  { fill: #d8c3a5; opacity: 0.9; }
+.fx-feather .fe-quill { stroke: #8a7355; opacity: 0.8; }
+/* Sway is a separate rotate on the inner svg so the outer element owns
+   the fall — one element can't run two conflicting transforms. */
+.fx-feather svg { animation: fx-feather-sway 1.5s ease-in-out infinite; }
+@keyframes fx-feather-fall {
+  0%   { opacity: 0; transform: translate(0, -6px); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(38px, 190px); }
+}
+@keyframes fx-feather-sway {
+  0%, 100% { transform: rotate(-24deg); }
+  50%      { transform: rotate(26deg); }
+}
+
+/* Complete standalone styling, NOT a variant of .decor-usa_eagles. The
+   clone is stripped to this one class because `.decor-usa_eagles.eagle-2`
+   is more specific and its animation-duration/-delay longhands were
+   overriding this rule's shorthand — that bird started its bolt 9s in
+   and vanished instead of flying. Nothing here may depend on the
+   decoration's own classes. */
+/* ---- The arrow ----
+   Loosed from below the viewport toward the bird. Rotated once, up
+   front, along its own trajectory (--rot, computed in JS from the real
+   angle) so it never reads as travelling sideways — an arrow that does
+   not point where it is going is the thing that breaks the illusion.
+   The travel itself is a plain translate on top of that rotation, which
+   is why the rotation lives in the same transform rather than on a
+   parent. */
+.fx-arrow {
+  position: absolute;
+  width: 9px; margin-left: -4.5px;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.fx-arrow svg { width: 100%; display: block; overflow: visible; }
+.fx-arrow .ar-shaft  { stroke: #8a6a43; stroke-width: 1.4; fill: none; }
+.fx-arrow .ar-head   { fill: #cfd4da; }
+.fx-arrow .ar-fletch { fill: #b4483c; }
+
+/* A hit STOPS at the bird. A miss carries on past it and off-screen —
+   that continuation is the whole tell that separates "missed" from
+   "disappeared", so the two get different curves as well as different
+   distances: the hit decelerates into the impact, the miss does not
+   slow down at all. */
+.fx-arrow.hit  { animation: fx-arrow-fly 0.34s cubic-bezier(0.2, 0.7, 0.4, 1) forwards; }
+.fx-arrow.miss { animation: fx-arrow-past 0.85s linear forwards; }
+
+/* The flying arrow VANISHES at impact rather than parking in mid-air.
+   It used to hold its final frame for the rest of its lifetime, so a
+   hit left an arrow frozen in the sky -- reported live. On a hit the
+   arrow is handed off to .fx-arrow-stuck riding the bird, so this one
+   has done its job the moment it arrives and should get out of the way.
+   The fade is short and late (90-100%) so the travel still reads. */
+@keyframes fx-arrow-fly {
+  0%   { transform: rotate(var(--rot)) translate(0, 0); opacity: 1; }
+  90%  { transform: rotate(var(--rot)) translate(0, calc(-0.97 * var(--travel, 0px))); opacity: 1; }
+  100% { transform: rotate(var(--rot)) translate(0, calc(-1 * var(--travel, 0px))); opacity: 0; }
+}
+/* Travel is expressed along the arrow's OWN axis, so one keyframe works
+   for every angle: after rotating, "forward" is always -Y. */
+.fx-arrow { --travel: 0px; }
+@keyframes fx-arrow-past {
+  0%   { transform: rotate(var(--rot)) translateY(0); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: rotate(var(--rot)) translateY(-140vh); opacity: 0; }
+}
+
+/* ---- Struck, but still flying ----
+   The arrow rides inside the ghost, so it inherits the flight transform
+   instead of being animated separately and drifting out of register.
+   Angled across the body rather than aligned to it: an arrow parallel to
+   the bird reads as decoration, one crossing it reads as embedded. */
+.fx-arrow-stuck {
+  position: absolute;
+  left: 46%; top: 8%;
+  width: 8px;
+  transform: rotate(28deg);
+  pointer-events: none;
+}
+.fx-arrow-stuck svg { width: 100%; display: block; overflow: visible; }
+.fx-arrow-stuck .ar-shaft  { stroke: #8a6a43; stroke-width: 1.4; fill: none; }
+.fx-arrow-stuck .ar-head   { fill: #cfd4da; opacity: 0; }  /* buried in the bird */
+.fx-arrow-stuck .ar-fletch { fill: #b4483c; }
+
+/* A wounded bird still gets away, but not cleanly — same escape as the
+   startled one plus a lurch, so the difference is legible at a glance
+   without needing to spot the arrow. */
+.fx-eagle-rush.hit { animation: fx-eagle-rush 1.8s cubic-bezier(0.3, 0, 0.8, 1) forwards, fx-eagle-lurch 0.42s ease-in-out 3; }
+@keyframes fx-eagle-lurch {
+  0%, 100% { rotate: 0deg; }
+  35%      { rotate: -13deg; }
+  70%      { rotate: 9deg; }
+}
+
+/* ---- Downed ----
+   Falls with a tumble, and the tumble ACCELERATES — a constant spin
+   reads as a prop being thrown rather than something losing its flight.
+   Drifts sideways a little on the way down instead of dropping straight,
+   which is the difference between a body and a lift. */
+.fx-eagle-fall {
+  position: absolute;
+  color: var(--text-dim);
+  animation: fx-eagle-fall 2.2s cubic-bezier(0.45, 0.05, 0.9, 1) forwards;
+  pointer-events: none;
+  z-index: 1;
+}
+.fx-eagle-fall .wing, .fx-eagle-fall .eagle-body { fill: currentColor; }
+@keyframes fx-eagle-fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  18%  { transform: translate(calc(var(--rush) * 0.06), -14px) rotate(-22deg); opacity: 1; }
+  100% { transform: translate(calc(var(--rush) * 0.22), 96vh) rotate(430deg); opacity: 0.35; }
+}
+
+/* Ambient decoration is already suppressed under reduced-motion; the
+   shot is user-initiated, so it stays — but the tumble and the lurch are
+   the parts that could actually bother someone, so those flatten. */
+@media (prefers-reduced-motion: reduce) {
+  .fx-eagle-fall { animation-duration: 0.9s; }
+  .fx-eagle-rush.hit { animation: fx-eagle-rush 1.8s ease-out forwards; }
+  @keyframes fx-eagle-fall {
+    0%   { transform: translate(0, 0); opacity: 1; }
+    100% { transform: translate(0, 96vh); opacity: 0; }
+  }
+}
+
+.fx-eagle-rush {
+  position: absolute; color: #6b5540; opacity: 0.9;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+  animation: fx-eagle-rush 1.5s cubic-bezier(0.42, 0, 0.9, 1) forwards;
+}
+.fx-eagle-rush .wing, .fx-eagle-rush .eagle-body { fill: currentColor; }
+.fx-eagle-rush .eagle-tail, .fx-eagle-rush .eagle-head { fill: #f4f1ea; }
+.fx-eagle-rush .eagle-beak { fill: #f0b429; }
+.fx-eagle-rush .wing {
+  transform-box: view-box; transform-origin: 30px 15px;
+  animation: decor-flap 0.3s ease-in-out infinite;      /* panicked wingbeat */
+}
+.fx-eagle-rush .wing-r { animation-name: decor-flap-r; }
+/* Banks as it climbs rather than sliding flat off the edge. */
+@keyframes fx-eagle-rush {
+  0%   { opacity: 0.95; transform: translate(0, 0) rotate(0deg) scale(1); }
+  25%  { opacity: 0.95; transform: translate(calc(var(--rush, 52vw) * 0.18), -4vh) rotate(var(--bank, -10deg)) scale(0.97); }
+  100% { opacity: 0;    transform: translate(var(--rush, 52vw), -30vh) rotate(var(--bank, -10deg)) scale(0.68); }
+}
+
+/* ---- Bottom clouds ---- */
+/* Something leaps out and drops back in. */
+.fx-bounce { position: absolute; margin-left: -14px; animation: fx-bounce 1.7s cubic-bezier(0.33, 0, 0.5, 1) forwards; }
+.fx-bounce .bo-emoji {
+  display: block; font-size: 1.65rem; line-height: 1;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.35));
+  animation: fx-bounce-spin 1.7s ease-in-out;
+}
+@keyframes fx-bounce {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.6); }
+  12%  { opacity: 1; }
+  45%  { transform: translateY(-88px) scale(1); }
+  85%  { opacity: 1; transform: translateY(4px) scale(1); }
+  100% { opacity: 0; transform: translateY(14px) scale(0.6); }
+}
+@keyframes fx-bounce-spin {
+  0%   { transform: rotate(-14deg); }
+  45%  { transform: rotate(12deg); }
+  100% { transform: rotate(-6deg); }
+}
+
+/* A prop spins straight through the cloud. */
+.fx-fly { position: absolute; width: 40px; margin-top: -20px; }
+.fx-fly.from-left  { animation: fx-fly-r 1.5s linear forwards; }
+.fx-fly.from-right { animation: fx-fly-l 1.5s linear forwards; }
+.fx-fly .fx-prop { width: 100%; display: block; animation: fx-prop-spin 0.5s linear infinite; }
+.fx-fly .fx-prop-emoji {
+  font-size: 1.7rem; line-height: 1; text-align: center;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.35));
+}
+.fx-fly .pr-head { fill: var(--accent); opacity: 0.85; }
+.fx-fly .pr-dark { fill: #8a7355; }
+@keyframes fx-prop-spin { to { transform: rotate(360deg); } }
+@keyframes fx-fly-r {
+  0%   { opacity: 0; transform: translateX(0); }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(320px); }
+}
+@keyframes fx-fly-l {
+  0%   { opacity: 0; transform: translateX(0); }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-320px); }
+}
+
+.fx-fairy { position: absolute; animation: fx-fairy-fly 2.6s ease-in forwards; }
+.fx-fairy .fairy-body {
+  position: absolute; font-size: 1.15rem; color: #fff7c2;
+  filter: drop-shadow(0 0 7px #fbbf24); animation: fx-fairy-spin 0.7s linear infinite;
+}
+.fx-fairy .fairy-glow {
+  position: absolute; left: -13px; top: -13px; width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(251,191,36,0.55), transparent 68%);
+  animation: fx-fairy-pulse 0.9s ease-in-out infinite;
+}
+@keyframes fx-fairy-fly {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  14%  { opacity: 1; transform: translate(14px, -12px) scale(1); }
+  40%  { transform: translate(64px, -46px) scale(1); }
+  62%  { transform: translate(38px, -94px) scale(0.94); }
+  84%  { opacity: 0.85; transform: translate(96px, -142px) scale(0.8); }
+  100% { opacity: 0; transform: translate(150px, -196px) scale(0.5); }
+}
+@keyframes fx-fairy-spin  { to { transform: rotate(360deg); } }
+@keyframes fx-fairy-pulse { 0%, 100% { transform: scale(0.8); opacity: 0.75; } 50% { transform: scale(1.2); opacity: 1; } }
+
+/* Everything here is ambient motion with no informational content, so
+   it all stops outright rather than being reduced — matching what the
+   rest of the app does for reduced-motion. The cloud-poke effects stay
+   available (they're user-initiated, not ambient) but lose the flash,
+   which is the one piece that could actually hurt. */
+@media (prefers-reduced-motion: reduce) {
+  .decor-usa_stars, .decor-usa_stars span,
+  .decor-usa_eagles, .decor-usa_eagles .wing,
+  .decor-clouds, .decor-scene .sc-window,
+  .decor-moon .moon-halo, .decor-sun, .decor-sun .sun-halo,
+  .decor-sun .sun-rays, .decor-sun .sun-rays-idle, .decor-sun .sun-disc,
+  .fx-bat, .fx-bat svg { animation: none; }
+  /* Reduced motion loses the pulse, so the sun keeps a STATIC bloom
+     rather than reverting to the flat disc that was reported as not
+     glowing at all. */
+  .decor-sun { filter: drop-shadow(0 0 16px rgba(245, 170, 60, 0.6)); }
+  .decor-usa_eagles { display: none; }
+  .fx-flash { display: none; }
+}
+
+/* ---- Poke the moon: a colony scatters out from behind it ----
+   Two elements per bat, the pattern the feather and the startled eagle
+   both use: the outer div owns the flight path, the inner svg owns the
+   wingbeat. One element can't run two transforms without them fighting.
+   The flap is a vertical squash rather than drawn wing paths — at 22px
+   the silhouette change is all that reads, and it costs one keyframe. */
+/* Deliberately NO z-index. Bats are inserted before the moon in the
+   decoration layer so the moon's disc hides them until they clear it —
+   but a positioned element WITH a z-index paints above an auto-z-index
+   sibling whatever the DOM order says, which would have put them back
+   in front of the moon and undone the whole point. */
+.fx-bat {
+  position: absolute;
+  animation: fx-bat-fly 1.7s cubic-bezier(0.2, 0.5, 0.5, 1) forwards;
+}
+/* No glow. A pale rim made them read as lit from within, which nothing
+   in the scene justifies — they're between the viewer and a night sky.
+   Visibility comes from the FILL being lighter than the sky instead: a
+   true-black bat is realistic and invisible (the first pass vanished a
+   few px from the moon), a rimmed one is visible and wrong. This is the
+   middle: a flat dusk-violet silhouette, no light source implied. */
+.fx-bat svg {
+  width: 100%; display: block;
+  animation: fx-bat-flap 0.22s ease-in-out infinite;
+}
+.fx-bat path { fill: #423a56; }
+/* The emblem is darker, larger and flap-free — it's an emblem, not an
+   animal, and flapping it would undercut the joke. */
+.fx-bat-logo svg { animation: none; }
+.fx-bat-logo path { fill: #322a47; }
+@keyframes fx-bat-fly {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.35) rotate(0deg); }
+  12%  { opacity: 1; }
+  /* Slight rise before the fall out — bats leave a roost upward. */
+  35%  { transform: translate(calc(var(--bx) * 0.4), calc(var(--by) * 0.55)) scale(1) rotate(-6deg); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(0.85) rotate(4deg); }
+}
+@keyframes fx-bat-flap {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.45); }
+}
+
+/* Forum (forum/forum.js)
+   .forum-rep is gone with the single stored balance it displayed. There
+   are four numbers now, and they are not equals: today's allowance is
+   the only one with a deadline, so it leads and the three totals sit
+   under it as a row. */
+.forum-today {
+  padding: 0.85rem 1rem; margin: 0.2rem 0 0.9rem;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+/* Lit only when there is actually something to spend — an unlit panel
+   saying "0 left" should not look like a call to action. */
+.forum-today.has { border-color: var(--border-accent); background: var(--accent-glow); }
+.ft-line { font-size: 1.05rem; line-height: 1.4; }
+.ft-line strong { font-family: var(--mono); font-size: 1.5rem; color: var(--yellow); }
+.ft-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+.forum-figures {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.fig {
+  padding: 0.7rem 0.5rem; text-align: center;
+  border-radius: var(--radius-xs); background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+/* Given sits in the same row as the two received figures, at the same
+   size, on purpose — a board that shows only what you received rewards
+   popularity alone. See forum.js. */
+.fig-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 0.3rem; line-height: 1.25;
+}
+.fs-num {
+  font-family: var(--mono); font-size: 1.6rem; font-weight: 700;
+  color: var(--text); line-height: 1; font-variant-numeric: tabular-nums;
+}
+
+.forum-empty { border: 1px dashed var(--border-accent); background: transparent; }
+
+/* The feed. A post is a card, and its two ends carry the two things
+   that matter: who wrote it, and what it is worth. */
+.post-list { display: flex; flex-direction: column; gap: 0.7rem; }
+.post {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-card); padding: 0.85rem 1rem;
+}
+/* Your own post reads differently on purpose: it is the one you cannot
+   act on, and it should look like a statement rather than an offer. */
+.post.own { border-style: dashed; background: transparent; }
+
+.post-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.post-av { font-size: 1.05rem; }
+.post-who { font-weight: 600; font-size: 0.9rem; }
+.post-when { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); }
+
+.post-body {
+  font-size: 0.92rem; line-height: 1.55; color: var(--text);
+  white-space: normal; overflow-wrap: anywhere;
+}
+
+.post-foot {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--border);
+}
+.post-score, .post-views { font-size: 0.85rem; color: var(--text-dim); }
+/* Views sit beside the score but read quieter: one is what people
+   chose to give, the other is only that they showed up. */
+.post-views { opacity: 0.75; }
+.pv-num { font-family: var(--mono); color: var(--text-dim); }
+.ps-num { font-family: var(--mono); font-weight: 700; color: var(--text); }
+
+.post-give {
+  margin-left: auto; font: inherit; font-size: 0.8rem; font-weight: 600;
+  padding: 0.35rem 0.8rem; border-radius: var(--radius-xs); cursor: pointer;
+  background: var(--accent-glow); color: var(--accent-light);
+  border: 1px solid var(--border-accent);
+  transition: background 0.15s ease;
+}
+.post-give:hover:not([disabled]) { background: var(--border-accent); }
+.post-give:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+/* Disabled means one of: your own post, already given, or nothing left
+   today. Each carries its own label or title, so the state is never
+   just "greyed out for reasons". */
+.post-give[disabled] {
+  cursor: default; opacity: 0.5;
+  background: transparent; color: var(--text-muted); border-color: var(--border);
+}
+.post-give.done { opacity: 1; color: var(--text-dim); border-style: dashed; }
+
+.post-thread {
+  margin-left: auto; font-size: 0.78rem; padding: 0.3rem 0.6rem;
+}
+.post-thread + .post-give { margin-left: 0; }
+
+/* Writing. The box is plain on purpose — a forum that decorates the
+   compose field is telling you the writing matters less than the UI. */
+.compose-text {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  font: inherit; font-size: 0.92rem; line-height: 1.5;
+  padding: 0.7rem 0.8rem; border-radius: var(--radius-xs);
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border);
+}
+.compose-text:focus { outline: none; border-color: var(--border-accent); }
+.compose-text:disabled { opacity: 0.55; cursor: not-allowed; }
+.compose-foot {
+  display: flex; align-items: center; gap: 0.75rem; margin-top: 0.55rem;
+}
+/* The remaining count sits BESIDE the button, not under the box, so it
+   is read before the click rather than after. */
+.compose-left { font-size: 0.78rem; color: var(--text-muted); }
+.compose-foot .btn-primary { margin-left: auto; font-size: 0.85rem; padding: 0.4rem 1rem; }
+.compose.spent .compose-left { color: var(--text-dim); }
+
+/* A thread is inset under its post, so it reads as belonging to it
+   rather than as more feed. */
+.thread {
+  margin-top: 0.8rem; padding-top: 0.7rem; padding-left: 0.9rem;
+  border-top: 1px solid var(--border);
+  border-left: 2px solid var(--border-accent);
+  display: flex; flex-direction: column; gap: 0.7rem;
+}
+.reply .post-head { margin-bottom: 0.3rem; }
+.reply .post-body { font-size: 0.88rem; }
+.reply-foot {
+  display: flex; align-items: center; gap: 0.6rem; margin-top: 0.5rem;
+}
+/* Lighter than a post foot: a reply is inside a thread that already has
+   a border, and a second heavy rule would box it twice. */
+.reply-foot .post-give { font-size: 0.72rem; padding: 0.22rem 0.6rem; }
+.reply-foot .post-score { font-size: 0.78rem; }
+.reply.own { opacity: 0.85; }
+.reply-box { display: flex; flex-direction: column; gap: 0.45rem; }
+.reply-box .btn-ghost { align-self: flex-start; font-size: 0.8rem; }
+
+@media (max-width: 26rem) {
+  .forum-figures { grid-template-columns: 1fr; }
+  .fig { display: flex; align-items: baseline; justify-content: space-between; text-align: left; }
+  .fig-label { margin-bottom: 0; }
+}
+
+/* Flying bolt */
+.bolt-layer { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
+.flying-bolt {
+  position: fixed; display: flex; align-items: center; gap: 0.25rem;
+  transform: translate(0, 0) scale(1); opacity: 1;
+  transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.9s ease-in;
+  will-change: transform, opacity;
+}
+.fb-icon { font-size: 1.3rem; filter: drop-shadow(0 0 10px var(--bolt-3)); }
+
+/* Streak-renewal confetti — a handful of .confetti-piece spans, each with
+   its own --dx/--dy/--rot end state set inline (see hud.js burstConfetti),
+   animated once and removed. Lives in #bolt-layer, not a new overlay. */
+.confetti-piece {
+  position: fixed; width: 6px; height: 10px; border-radius: 1px;
+  transform: translate(0, 0) rotate(0deg); opacity: 1;
+  animation: confettiBurst 0.85s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+@keyframes confettiBurst {
+  to { transform: translate(var(--dx), calc(var(--dy) + 90px)) rotate(var(--rot)); opacity: 0; }
+}
+
+/* Money VFX — see core/hud.js's moneyBurst(), fired from games.js's
+   settle(), the one choke point every arcade payout passes through. */
+.coin-piece {
+  position: fixed; font-family: var(--mono); font-weight: 700; font-size: 0.85rem;
+  color: var(--green); text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  transform: translate(0, 0); opacity: 1;
+  animation: coinBurst 0.7s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+@keyframes coinBurst {
+  to { transform: translate(var(--dx), calc(var(--dy) + 40px)); opacity: 0; }
+}
+.vital-wallet.pulse-win { animation: walletPulseWin 0.5s ease; }
+@keyframes walletPulseWin {
+  0%, 100% { box-shadow: none; }
+  35% { box-shadow: 0 0 0 4px var(--green-glow); }
+}
+.vital-wallet.shake { animation: walletShake 0.42s ease; border-color: rgba(239, 68, 68, 0.5); }
+@keyframes walletShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(1px); }
+}
+
+/* Global click ripple — see core/core.js's delegated pointerdown
+   listener. Sized relative to the button rather than overflow:hidden +
+   a fixed size, so it doesn't clip existing hover glows on the buttons
+   it's attached to. */
+.click-ripple {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.35);
+  pointer-events: none; transform: scale(0); opacity: 0.9;
+  animation: clickRipple 0.5s ease-out forwards;
+}
+@keyframes clickRipple { to { transform: scale(9); opacity: 0; } }
+.fb-amount {
+  font-family: var(--mono); font-size: 0.85rem; font-weight: 700;
+  color: var(--bolt-3); text-shadow: 0 0 10px var(--bolt-glow);
+}
+.charge-award {
+  display: inline-block; margin-top: 0.6rem;
+  font-family: var(--mono); font-size: 0.9rem; color: var(--bolt-3);
+}
+.charge-award .ca-mult { opacity: 0.6; font-size: 0.8rem; }
+.charge-award.full { color: var(--text-muted); }
+
+/* A destructive action should not look like every other button. Red
+   outline rather than a red fill: filled red reads as "primary action,
+   press me", which is the opposite of the intent. */
+.danger-btn {
+  border-color: rgba(220, 70, 70, 0.55);
+  color: #e06060;
+}
+.danger-btn:hover:not(:disabled) {
+  background: rgba(220, 70, 70, 0.12);
+  border-color: rgba(220, 70, 70, 0.8);
+}
+.danger-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Cloud-sync notice (core/sync.js) ── */
+/* Bottom-corner, non-blocking, no dismiss button: it disappears on its
+   own the moment a sync succeeds. A modal here would interrupt someone
+   mid-exam over a network blip, which is the opposite of the point —
+   sync failing must never stop studying. */
+.sync-notice {
+  position: fixed; left: 1rem; bottom: 1rem; z-index: 60;
+  max-width: 280px; padding: 0.6rem 0.8rem; border-radius: 8px;
+  background: var(--bg-card); border: 1px solid var(--border-accent);
+  color: var(--text-dim); font-size: 0.76rem; line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+@media (max-width: 620px) {
+  .sync-notice { left: 0.6rem; right: 0.6rem; max-width: none; bottom: 0.6rem; }
+}
+
+/* ── Auth gate (core/auth.js) ── */
+/* Left-aligned labels above inputs, unlike the rest of the app's
+   centred modals: this is a form, and a centred form is harder to scan
+   down. The card keeps the modal chrome so it still reads as the same
+   family. */
+.auth-card { max-width: 400px; text-align: left; }
+.auth-card .modal-icon,
+.auth-card .modal-title { text-align: center; }
+
+.auth-tabs {
+  display: flex; gap: 0.25rem; margin: 1.1rem 0 1.2rem;
+  padding: 0.25rem; border-radius: 10px; background: var(--bg-surface);
+}
+.auth-tab {
+  flex: 1; padding: 0.5rem 0.6rem; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-dim); cursor: pointer;
+  font-size: 0.86rem; font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.auth-tab:hover { color: var(--text); }
+.auth-tab.active { background: var(--bg-card); color: var(--text); }
+
+.auth-row { margin-bottom: 0.85rem; }
+.auth-label {
+  display: block; margin-bottom: 0.3rem;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em;
+  color: var(--text-dim);
+}
+.auth-row .modal-input { width: 100%; margin: 0; }
+.auth-note { margin: 0.4rem 0 0; font-size: 0.74rem; line-height: 1.5; }
+
+/* Not a toast: an error here is about the field directly above it and
+   has to survive being read slowly, so it stays in the flow. */
+.auth-error {
+  margin: 0.2rem 0 0.9rem; padding: 0.6rem 0.75rem; border-radius: 8px;
+  background: rgba(220, 70, 70, 0.12);
+  border: 1px solid rgba(220, 70, 70, 0.35);
+  color: var(--text); font-size: 0.82rem; line-height: 1.5;
+}
+
+/* ---- Sign-in switched off (Dojo.OPEN_ACCESS, core/core.js) ----
+   The form stays visible but dead: greyed out and unclickable, so it
+   reads as deliberately switched off rather than broken. The lock is
+   red because it is the one thing on the card that is meant to be
+   read. */
+.auth-locked .auth-tabs,
+.auth-locked #auth-form {
+  filter: grayscale(1);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+.auth-off-notice {
+  text-align: center;
+  margin: 0.2rem 0 1rem;
+  padding: 0.9rem 0.9rem 1rem;
+  border-radius: 10px;
+  background: rgba(220, 70, 70, 0.10);
+  border: 1px solid rgba(220, 70, 70, 0.45);
+}
+.auth-off-lock {
+  font-size: 2rem;
+  line-height: 1;
+  /* The emoji has its own colour; this tints it toward red and gives it
+     a red glow so it reads as "locked" on every platform's emoji set. */
+  filter: hue-rotate(-40deg) saturate(2.2) drop-shadow(0 0 6px rgba(230, 60, 60, 0.75));
+  margin-bottom: 0.4rem;
+}
+.auth-off-title {
+  font-weight: 700;
+  color: #ef5a5a;
+  margin-bottom: 0.35rem;
+}
+.auth-off-body {
+  margin: 0 0 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-dim, var(--text));
+}
+.auth-off-ok { width: 100%; justify-content: center; }
+
+/* The same switch, in the profile dropdown where Sign out used to be.
+   Grey by COLOUR, not by a grayscale filter: a filter on the button
+   would also drain the red out of the lock inside it. */
+.pd-action-locked {
+  color: #8a8f9c;
+  opacity: 0.8;
+}
+.pd-action-locked:hover { opacity: 1; color: #a3a8b4; }
+.pd-lock {
+  filter: hue-rotate(-40deg) saturate(2.2) drop-shadow(0 0 4px rgba(230, 60, 60, 0.7));
+}
+
+.auth-submit { width: 100%; justify-content: center; margin-top: 0.3rem; }
+.auth-submit:disabled { opacity: 0.6; cursor: default; }
+.auth-sent-title {
+  margin: 1rem 0 0.5rem; text-align: center;
+  font-size: 1.05rem; font-weight: 700;
+}
+
+/* The account line in the profile dropdown. */
+.pd-account {
+  padding: 0.15rem 0 0.55rem;
+  font-size: 0.75rem; color: var(--text-muted);
+  word-break: break-all;
+}
+.pd-account strong { display: block; color: var(--text-dim); font-weight: 600; }
+
+/* ── Lobby ── */
+#lobby { display: none; }
+#lobby.active { display: flex; align-items: center; justify-content: center; }
+/* position:relative is vestigial here — it existed so .lobby-daynight
+   could pin to this corner, and that switch is gone (see core/lobby.js).
+   Kept because .lobby-inner is a containing block other absolutely
+   positioned lobby bits may still rely on; removing it is a separate,
+   verifiable change rather than a drive-by. */
+.lobby-inner { width: 100%; max-width: 560px; padding: 2rem 1.25rem; position: relative; }
+.lobby-brand {
+  font-size: 2.6rem; font-weight: 900; text-align: center; letter-spacing: -0.02em;
+}
+.lobby-welcome {
+  text-align: center; color: var(--text-dim);
+  margin: 0.4rem 0 2rem; font-size: 0.95rem;
+}
+/* What is clickable here, said once under the welcome line. In flow, so
+   the star layout's ring moves down with it instead of meeting it. */
+.lobby-hint {
+  text-align: center; color: var(--text-muted);
+  margin: -1.6rem 0 1.9rem; font-size: 0.8rem;
+}
+body.hide-hints .lobby-hint { display: none; }
+
+/* A tap that hit nothing lights every real control for a moment
+   (core/lobby.js). Box-shadow only, so nothing moves or reflows. */
+#lobby.lobby-reveal .lobby-tile,
+#lobby.lobby-reveal .lobby-hub,
+#lobby.lobby-reveal .lobby-spark-btn,
+#lobby.lobby-reveal .lobby-rotate-control {
+  animation: lobby-reveal 1.3s ease;
+}
+@keyframes lobby-reveal {
+  0%   { box-shadow: 0 0 0 0 transparent; }
+  22%  { box-shadow: 0 0 0 3px var(--accent), 0 0 24px var(--accent-glow); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lobby.lobby-reveal .lobby-tile,
+  #lobby.lobby-reveal .lobby-hub,
+  #lobby.lobby-reveal .lobby-spark-btn,
+  #lobby.lobby-reveal .lobby-rotate-control {
+    animation: none;
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+.lobby-actions { display: flex; flex-direction: column; gap: 0.7rem; }
+.lobby-tile {
+  display: flex; align-items: center; gap: 1rem; width: 100%;
+  padding: 1.05rem 1.2rem; cursor: pointer; text-align: left;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-card); color: var(--text); font: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.lobby-tile:hover {
+  background: var(--bg-card-hover); border-color: var(--border-accent);
+  transform: translateY(-2px);
+}
+.lobby-tile.primary { border-color: var(--border-accent); background: var(--accent-glow); }
+.lobby-tile.subtle { opacity: 0.78; }
+.lobby-tile.subtle:hover { opacity: 1; }
+.lt-icon { font-size: 1.45rem; }
+.lt-body { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
+.lt-title { font-weight: 700; font-size: 0.98rem; }
+.lt-sub { font-size: 0.8rem; color: var(--text-dim); }
+
+/* ── Lobby style: "Cards" ──
+   A re-skin of the same six tiles (core/lobby.js applies this class to
+   .lobby-actions from DB.getLobbyStyle()) — NOT a rearrangement. Same
+   list, same order, same content; just more visual weight per tile:
+   elevation, a rounded icon badge, a livelier hover. See PROJECT.md
+   Stage 13 Part 4 — asked for "visual re-skin", explicitly not a
+   structural change, so a grid/sidebar layout was deliberately not built. */
+.lobby-style-cards { gap: 0.9rem; }
+.lobby-style-cards .lobby-tile {
+  border-radius: 20px; padding: 1.2rem 1.3rem; border-color: transparent;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+.lobby-style-cards .lobby-tile:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26);
+  transform: translateY(-3px) scale(1.008);
+}
+.lobby-style-cards .lobby-tile.primary {
+  box-shadow: 0 4px 18px var(--accent-glow-strong);
+}
+.lobby-style-cards .lt-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+  background: var(--accent-glow); font-size: 1.35rem;
+}
+.lobby-style-cards .lobby-tile.primary .lt-icon {
+  background: var(--accent); box-shadow: 0 0 16px var(--accent-glow-strong);
+}
+
+/* ── Lobby style: "Star" ──
+   Unlike "Cards" above, this IS a structural rearrangement — explicitly
+   asked for after Cards, so the "re-skin only" constraint documented on
+   Cards is deliberately not carried over here. Same six tiles, same
+   DB.getLobbyStyle() switch, but core/lobby.js additionally computes a
+   --angle per VISIBLE tile (layoutLobbyRadial) because the Resume tile
+   toggles on/off and a pure-CSS nth-child angle would leave a gap at
+   its slot when it's hidden.
+
+   A plain circle-of-nodes layout ("Radial") shipped alongside this and
+   was cut a day later — same arrangement minus the hub and spokes that
+   make Star actually read as a network topology, so it was just a
+   worse Star. One circular style, not two. */
+.lobby-style-star {
+  --lobby-radius: 168px;
+  position: relative; height: 440px; margin-top: 0.5rem;
+}
+.lobby-style-star .lobby-tile {
+  /* --tx/--ty are set by core/lobby.js's layoutLobbyRadial with the same
+     trig used for the SVG spoke lines, so the visible circle and its
+     actual clickable point are computed from the same numbers — a
+     rotate(angle) translate(radius) rotate(-angle) chain used to do this
+     purely in CSS, but that's exactly the kind of compound transform
+     real browsers' pointer/touch hit-testing doesn't reliably agree on
+     (reported live: the visible circle and the point that actually
+     registered a click were in two different places). Falls back to
+     dead center if unset, same as before. */
+  position: absolute; top: var(--ty, 50%); left: var(--tx, 50%); z-index: 2;
+  width: 112px; height: 112px; padding: 0.6rem; margin: 0;
+  border-radius: 50%; flex-direction: column; justify-content: center;
+  gap: 0.2rem; text-align: center;
+  box-shadow: 0 0 0 1px var(--border-accent), 0 0 18px 3px var(--accent-glow);
+  transform: translate(-50%, -50%);
+}
+/* Every tile in the ring is 112px, and must READ as 112px too. The
+   primary tile's filled --accent-glow disc made Library look bigger
+   than the rest (reported, and measured: all six are identical) — a
+   filled shape reads larger than an outlined one at the same geometry.
+   It keeps an accent RING instead, so it's still the obvious starting
+   point without appearing to outweigh its neighbours. */
+.lobby-style-star .lobby-tile.primary {
+  background: var(--bg-card);
+  box-shadow: 0 0 0 1.5px var(--accent), 0 0 18px 3px var(--accent-glow);
+}
+.lobby-style-star .lobby-tile:hover, .lobby-style-star .lobby-tile:focus-visible {
+  z-index: 3;
+  box-shadow: 0 0 0 1px var(--border-accent), 0 0 26px 5px var(--accent-glow-strong);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+.lobby-style-star .lt-sub, .lobby-style-star .arrow { display: none; }
+.lobby-style-star .lt-icon { font-size: 1.6rem; }
+.lobby-style-star .lt-title {
+  font-size: 0.72rem; line-height: 1.2; font-weight: 600;
+}
+.lobby-star-lines, .lobby-hub, .lobby-dials { display: none; }
+/* Rotate control — a velocity dial, not a position dial. Centered on 0
+   (no spin); drag either way to set how fast the ring turns, in
+   degrees/second. core/lobby.js's starSpinTick reads the slider every
+   animation frame and accumulates it into an angle fed through the
+   same trig layoutLobbyRadial already uses for tile position and the
+   spoke lines, so the ring turns by repositioning tiles rather than by
+   a CSS transform on the container — a rotate() on the container would
+   spin each tile's icon/text sideways too, and un-rotating just the
+   inner content is the same compound-transform hit-testing trap
+   layoutLobbyRadial's own comment already documents fixing once. */
+/* Lives above the brand in normal flow now, NOT pinned inside the ring
+   box — the orbit ring runs straight through the corner it used to sit
+   in. Flow rather than absolute positioning on purpose: there is no
+   width at which a centred row above the title can overlap the ring
+   below it, whereas any pinned corner has to be re-checked per
+   breakpoint. `.is-star` is toggled by core/lobby.js's showLobby
+   because the element is no longer a descendant of .lobby-style-star,
+   so the old descendant selector can't reach it. */
+.lobby-dials.is-star {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; margin: 0 0 0.75rem;
+}
+.lobby-rotate-control, .lobby-spark-control {
+  display: flex; align-items: center; gap: 0.4rem;
+}
+/* Stepper, not a slider: the range is 0-5, and a 6-stop slider is a
+   worse control than two buttons at that size — the thumb needs
+   pixel-accurate dragging to hit a value, while a button is a button on
+   any input device. Yellow, matching the amber already in
+   core/lobby.js's spark palette, so it reads as a different control
+   from the theme-accented wind dial beside it. */
+.lobby-spark-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--yellow); background: var(--yellow-glow);
+  color: var(--yellow); font: inherit; font-size: 0.95rem; line-height: 1;
+  cursor: pointer; transition: background 0.15s ease, transform 0.15s ease;
+}
+.lobby-spark-btn:hover { background: var(--yellow); color: var(--bg-deep); }
+.lobby-spark-btn:active { transform: scale(0.92); }
+.lobby-spark-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.lobby-spark-count {
+  min-width: 1.1rem; text-align: center;
+  font-family: var(--mono); font-size: 0.85rem; color: var(--yellow);
+}
+.lobby-rotate-icon { font-size: 0.95rem; opacity: 0.7; }
+/* Fully reset instead of relying on `accent-color` alone — that only
+   tints the thumb and the filled portion in Chromium; the unfilled
+   track is still drawn by the browser's own form-control theme, which
+   in Opera renders as a light bar that clashes badly against this
+   dark, tightly-cornered control (reported "broken style in Opera").
+   Drawing the whole track ourselves makes it look identical regardless
+   of which engine/skin renders the native parts.
+   The first pass hardcoded that hand-drawn track to a white-based
+   rgba, which is exactly backwards on a LIGHT theme (Paper etc.) —
+   a near-invisible white line on a cream background, reported as "the
+   slider isn't visible." Track now reads `--border-accent`, the same
+   theme-recolored variable core/theme.js already repaints per theme
+   (see paintTheme), so it stays visible regardless of theme mode. */
+.lobby-rotate-slider {
+  width: 84px; height: 16px;
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background: transparent;
+}
+.lobby-rotate-slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 999px;
+  background: var(--border-accent);
+}
+.lobby-rotate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  margin-top: -5px;
+}
+.lobby-rotate-slider::-moz-range-track {
+  height: 4px; border-radius: 999px;
+  background: var(--border-accent);
+}
+.lobby-rotate-slider::-moz-range-progress {
+  height: 4px; border-radius: 999px;
+  background: var(--accent);
+}
+.lobby-rotate-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.lobby-style-star .lobby-star-lines {
+  display: block; position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 1;
+  /* The orbit ring core/lobby.js draws sits just outside the tiles, and
+     the tiles already reach past this box vertically (r 168 + half a
+     112px tile = 224, against a 220px half-height). An svg clips to its
+     viewport by default, which would slice the top and bottom off the
+     ring. Safe to let it bleed: this element is absolutely positioned
+     and pointer-events:none, so overflow costs no layout — and the ring
+     is clamped HORIZONTALLY in JS against the real viewport width,
+     which is the direction that could otherwise cost a scrollbar. */
+  overflow: visible;
+}
+.lobby-style-star .lobby-star-lines line {
+  stroke: var(--border-accent); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.55;
+}
+/* Finer dashes than the spokes above (1.5/7 vs 4/4) so the track reads
+   as a separate, quieter object rather than more of the same network. */
+.lobby-style-star .lobby-star-lines .lobby-orbit-ring {
+  fill: none; stroke: var(--border-accent); stroke-width: 1.5;
+  stroke-dasharray: 1.5 7; stroke-linecap: round; opacity: 0.7;
+}
+/* Hexagram edges: solid, thick and flag-coloured, deliberately unlike
+   the thin dashed spokes — this mode is a statement, not wiring.
+   Colours are fixed national ones (they'd mean nothing recoloured per
+   theme), which is exactly why each edge is drawn twice: `hex-back` is
+   a wider dark stroke underneath, so the white band in the Israeli
+   gradient stays visible on light themes like Paper and Frost, where
+   white-on-cream would otherwise vanish. */
+/* Neon spokes: thicker and solid so the glow has something to sit on —
+   the colour and its drop-shadow come from the equipped flag, set
+   inline by core/lobby.js (inline style, not a stroke attribute — see
+   the note on the hexagram edges below for why that distinction bites). */
+.lobby-style-star .lobby-star-lines line.spoke-neon {
+  stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: none; opacity: 0.85;
+}
+.lobby-style-star .lobby-star-lines line.hex-back {
+  stroke: rgba(0, 0, 0, 0.55); stroke-width: 7;
+  stroke-linecap: round; stroke-dasharray: none; opacity: 0.5;
+}
+/* ---- Pentagram ----
+   Thinner than the hexagram's edges and softly lit, because the two are
+   doing different jobs: the hexagram is a bold emblem sitting ON the
+   ring, this is a figure suspended INSIDE it, behind the tiles. Heavy
+   strokes here would compete with the tiles for attention instead of
+   framing them.
+
+   Drawn twice like the hexagram, and for the same reason — a dark
+   backing keeps a light gradient legible on Paper and Frost, where a
+   white band would otherwise disappear into the page. It matters more
+   here: a pentagram crosses itself five times, so any stroke that
+   vanishes takes the figure's readability with it. */
+.lobby-style-star .lobby-star-lines line.pent-back {
+  stroke: rgba(0, 0, 0, 0.4); stroke-width: 4.5;
+  stroke-linecap: round; stroke-dasharray: none; opacity: 0.45;
+}
+.lobby-style-star .lobby-star-lines line.pent-edge {
+  stroke-width: 2; stroke-linecap: round; stroke-dasharray: none;
+  opacity: 0.9;
+  /* The glow is the whole point of "pretty" here. Two shadows rather
+     than one: a tight bright halo for the line itself and a wide soft
+     one for the bloom, which is what stops it reading as a flat vector
+     and starts it reading as lit. currentColor would be wrong — the
+     stroke is a gradient, so the glow is keyed to the theme accent
+     instead and the two colours sit deliberately apart. */
+  /* Glow colour is set inline by core/lobby.js from the equipped flag,
+     so it matches the stroke instead of the theme accent -- a halo in a
+     different colour from the line it surrounds is what made the first
+     version look smeared rather than lit. */
+  animation: pent-breathe 6s ease-in-out infinite;
+}
+/* Slow, shallow, and never fully dim: a figure that pulses hard reads as
+   an alert. This is closer to a candle than a notification. */
+@keyframes pent-breathe {
+  0%, 100% { opacity: 0.78; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lobby-style-star .lobby-star-lines line.pent-edge { animation: none; opacity: 0.9; }
+}
+
+.lobby-style-star .lobby-star-lines line.hex-edge {
+  stroke-width: 4.5; stroke-linecap: round;
+  stroke-dasharray: none; opacity: 0.95;
+}
+.lobby-style-star .lobby-hub {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 66px; height: 66px; border-radius: 50%; z-index: 2;
+  background: var(--accent-glow); border: 1px solid var(--border-accent);
+  font-size: 1.6rem; box-shadow: 0 0 24px var(--accent-glow-strong);
+  /* Now a <button> (was a decorative <div>) — Flashcards' home in this
+     topology, see core/lobby.js's STAR_ORDER comment. Reset button
+     chrome, keep the same glowing-hub look, add real hover feedback. */
+  cursor: pointer; font: inherit; color: inherit; padding: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.lobby-style-star .lobby-hub:hover, .lobby-style-star .lobby-hub:focus-visible {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 0 30px var(--accent-glow-strong);
+}
+@media (max-width: 420px) {
+  /* Bigger hit area on touch: 22px is fine for a mouse and too small
+     for a fingertip, and this is the one control here you tap
+     repeatedly. Only the tappable box grows — the glyph stays the same
+     size, so the row's visual weight doesn't change. */
+  .lobby-spark-btn { width: 32px; height: 32px; }
+  .lobby-style-star { --lobby-radius: 122px; height: 340px; }
+  .lobby-style-star .lobby-tile { width: 92px; height: 92px; }
+  .lobby-style-star .lt-icon { font-size: 1.35rem; }
+  .lobby-style-star .lt-title { font-size: 0.66rem; }
+  .lobby-style-star .lobby-hub { width: 54px; height: 54px; font-size: 1.3rem; }
+}
+
+/* ── Course cards ── */
+.course-card { cursor: pointer; }
+.course-progress {
+  margin-top: 0.9rem; height: 5px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07); overflow: hidden;
+}
+.course-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transition: width 0.6s ease;
+}
+
+
+/* ---- Brand watermark (#brand-watermark in index.html) ----
+   The wordmark as background art. Fixed, behind everything, tilted a
+   few degrees so it reads as a stamp rather than as a heading someone
+   forgot to centre.
+
+   Sized in vw so it scales with the viewport instead of needing
+   breakpoints, and clamped at both ends: below the floor it stops
+   reading as a mark at all, above the ceiling a single word starts
+   overflowing a wide monitor.
+
+   Deliberately NOT theme-accented. It sits under live text, and an
+   accent-coloured watermark competes with the accent used for the
+   things you are meant to click. --text at very low alpha reads as
+   texture; the accent would read as content. */
+#brand-watermark {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 0.28s ease, visibility 0s linear 0s;
+}
+#brand-watermark > span {
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(5rem, 26vw, 22rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  transform: rotate(-8deg);
+  color: var(--text);
+  opacity: 0.045;
+  /* A faint top-down fade so the mark sinks into the background rather
+     than sitting on it as a flat block of grey. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 25%, transparent 92%);
+          mask-image: linear-gradient(to bottom, #000 25%, transparent 92%);
+  user-select: none;
+}
+
+/* Light themes need less of it: the same alpha over a pale background
+   reads considerably heavier than over the dark one it was tuned on. */
+html[data-theme-mode="light"] #brand-watermark > span { opacity: 0.03; }
+
+@media (prefers-reduced-motion: reduce) {
+  #brand-watermark { transition: none; }
+}
+
+/* ---- First-run language gate (#lang-gate) ----
+   Two equal buttons, not a primary and a secondary: neither language is
+   the default here, and styling one as the obvious choice would be
+   making the choice for them. */
+.lang-gate-row {
+  display: flex; gap: 0.6rem; justify-content: center;
+  flex-wrap: wrap; margin: 0.4rem 0 0.9rem;
+}
+.lang-gate-btn { min-width: 8.5rem; }
+.lang-gate-hint {
+  font-size: 0.8rem; line-height: 1.6; color: var(--text-muted);
+  margin-bottom: 0;
+}
+
+
+/* ============================================================
+   PHOSPHOR — theme CHARACTER, not just palette
+   ------------------------------------------------------------
+   Every other theme is a set of colours: swap them and the app looks
+   different but behaves the same visually. Phosphor is the first one
+   whose look depends on things a colour variable cannot express — a
+   green-tinted rounded card is not a terminal, it is a rounded card
+   that happens to be green. That was exactly the gap: the palette
+   applied everywhere while Classic and Cards kept their soft, filled,
+   proportional-font character and read as "normal app, tinted".
+
+   Four devices carry the look, and all four are structural:
+     1. square corners        — a terminal has no rounded rects
+     2. outlined, not filled  — glyphs and rules on black, nothing solid
+     3. monospace             — the single strongest signal of the genre
+     4. hollow wordmark       — the outlined headers from the reference
+
+   Scoped entirely under [data-theme="phosphor"] (set by core/theme.js),
+   so no other theme is touched and removing the theme removes all of
+   this with it.
+   ============================================================ */
+
+/* ---- 1. Square everything ----
+   A blanket radius override rather than a per-component list: the
+   component list would go stale the moment anything new is added, and
+   "this theme has no rounded corners" is a rule, not a set of
+   exceptions. Circles are exempt below. */
+html[data-theme="phosphor"] .lobby-tile,
+html[data-theme="phosphor"] .topic-card,
+html[data-theme="phosphor"] .course-card,
+html[data-theme="phosphor"] .modal-card,
+html[data-theme="phosphor"] .settings-section,
+html[data-theme="phosphor"] .btn-primary,
+html[data-theme="phosphor"] .btn-ghost,
+html[data-theme="phosphor"] .modal-input,
+html[data-theme="phosphor"] .sources-box,
+html[data-theme="phosphor"] .legal-block,
+html[data-theme="phosphor"] .garden-course,
+html[data-theme="phosphor"] .auth-tabs,
+html[data-theme="phosphor"] .auth-tab,
+html[data-theme="phosphor"] .sync-notice {
+  border-radius: 0;
+}
+
+/* The ring nodes and the hub stay circular — the Star topology IS
+   circles, and squaring those would not read as "terminal", it would
+   read as broken. */
+html[data-theme="phosphor"].lobby-style-star .lobby-tile,
+html[data-theme="phosphor"] .lobby-hub,
+html[data-theme="phosphor"] .profile-avatar {
+  border-radius: 50%;
+}
+
+/* ---- 2. Outlined, not filled ----
+   The reference is bright rules and text on pure black with almost no
+   solid fills. The default primary tile is a solid accent block, which
+   is the single most un-terminal element on the screen — it becomes an
+   outline that brightens on hover instead. */
+html[data-theme="phosphor"] .lobby-tile,
+html[data-theme="phosphor"] .topic-card,
+html[data-theme="phosphor"] .course-card {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 65, 0.35);
+  box-shadow: none;
+}
+html[data-theme="phosphor"] .lobby-tile:hover,
+html[data-theme="phosphor"] .topic-card:hover,
+html[data-theme="phosphor"] .course-card:hover {
+  background: rgba(0, 255, 65, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.25);
+}
+html[data-theme="phosphor"] .lobby-tile.primary {
+  background: transparent;
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(0, 255, 65, 0.3);
+}
+html[data-theme="phosphor"] .btn-primary {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+html[data-theme="phosphor"] .btn-primary:hover {
+  background: rgba(0, 255, 65, 0.12);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+}
+
+/* ---- 3. Monospace ----
+   Applied to the CHROME, deliberately not to lesson prose: 300 words of
+   monospace body text is genuinely harder to read, and this theme should
+   cost nothing in comprehension. Titles, labels, buttons and stats take
+   it; .explain-blocks and friends keep the reading font. */
+html[data-theme="phosphor"] .lobby-tile,
+html[data-theme="phosphor"] .topic-title,
+html[data-theme="phosphor"] .topic-meta,
+html[data-theme="phosphor"] .stats-section-title,
+html[data-theme="phosphor"] .modal-title,
+html[data-theme="phosphor"] .btn-primary,
+html[data-theme="phosphor"] .btn-ghost,
+html[data-theme="phosphor"] .auth-tab,
+html[data-theme="phosphor"] .auth-label,
+html[data-theme="phosphor"] .topbar-title,
+html[data-theme="phosphor"] .profile-name-display,
+html[data-theme="phosphor"] .vital-wallet,
+html[data-theme="phosphor"] .vital-tokens {
+  font-family: var(--mono);
+  letter-spacing: -0.01em;
+}
+
+/* ---- 4. The hollow wordmark ----
+   The outlined headers from the reference. -webkit-text-stroke has no
+   standard equivalent with this reach, but it degrades safely: where it
+   is unsupported the text simply renders solid in the accent colour,
+   which is still correct-looking rather than broken.
+
+   The glow sits on a text-shadow rather than a filter so it hugs the
+   stroke instead of blooming the whole box. */
+html[data-theme="phosphor"] .lobby-brand,
+html[data-theme="phosphor"] .landing-title {
+  color: transparent;
+  /* Weight drops from 900. -webkit-text-stroke is drawn CENTRED on the
+     glyph outline, so half of it travels inward -- and at 900 the
+     counters (the enclosed holes in e, a, o) are already tight, so a
+     1.5px stroke closed the e into a blob. Reported as "e looks
+     broken", and it was.
+
+     Two changes, both needed: a lighter face opens the counters back
+     up, and a thinner stroke stops eating them. Letter-spacing widens
+     because an outlined glyph reads visually heavier than a filled one
+     and the default tracking is set for filled. */
+  /* SOLID, not outlined -- and this is the more authentic choice, not
+     a retreat from one.
+
+     Two rounds of -webkit-text-stroke failed on the same letters: it is
+     drawn CENTRED on the glyph edge, so half travels inward, and where
+     strokes converge -- the K arm junction, the e aperture -- they blob
+     shut. Thinning it further only made the whole wordmark spindly. The
+     outline was fighting the typeface rather than the size.
+
+     A phosphor CRT renders solid glowing glyphs anyway; the outlined
+     treatment in the reference is a LOGO, not terminal text. So this is
+     what the genre actually looks like, and it has no counters to close.
+
+     Layered shadows do the bloom: a tight core for the lit filament and
+     two wider passes for the halo, which is how phosphor smears on glass
+     rather than a single flat blur. */
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 4px rgba(0, 255, 65, 0.9),
+    0 0 14px rgba(0, 255, 65, 0.55),
+    0 0 34px rgba(0, 255, 65, 0.3);
+}
+/* The wordmark wraps its text in .accent, which normally carries a
+   clipped gradient. Override it to the flat accent so the span does not
+   punch a transparent hole through the glow above. */
+html[data-theme="phosphor"] .lobby-brand .accent,
+html[data-theme="phosphor"] .landing-title .accent {
+  background: none;
+  -webkit-background-clip: initial;
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
+}
+
+/* A terminal's caret. Small, and only on the lobby greeting so it reads
+   as a prompt rather than as decoration sprayed everywhere. */
+html[data-theme="phosphor"] .lobby-welcome::after {
+  content: "_";
+  color: var(--accent);
+  animation: phosphor-caret 1.1s steps(1) infinite;
+}
+@keyframes phosphor-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="phosphor"] .lobby-welcome::after { animation: none; }
+}
+
+
+/* ============================================================
+   FIRST-RUN APPEARANCE BAR (core/onboard.js)
+   ------------------------------------------------------------
+   Anchored to the bottom and nothing else. It must never cover the
+   lobby it is previewing — that is the entire premise — so it is short,
+   full-width, and the app scrolls behind it untouched.
+   ============================================================ */
+#onboard-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-accent);
+  /* Upward shadow only: it lifts off the page it sits on. */
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45);
+  animation: onb-rise 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes onb-rise {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { #onboard-bar { animation: none; } }
+
+.onb-left { flex: 1 1 auto; min-width: 0; }
+.onb-step { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.onb-why  { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; margin-top: 0.15rem; }
+
+/* The picker is the centre of gravity — arrows big enough to hit
+   repeatedly, because flicking back and forth to compare two options is
+   the main thing anyone does here. */
+.onb-picker {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.3rem 0.4rem; border-radius: 10px;
+  background: var(--bg-surface); border: 1px solid var(--border-accent);
+}
+.onb-arrow {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--accent);
+  font-size: 1.4rem; line-height: 1;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.onb-arrow:hover { background: var(--accent-glow); transform: scale(1.08); }
+.onb-arrow:active { transform: scale(0.94); }
+
+/* Fixed width so the bar does not jitter as names of different lengths
+   cycle through — a control that reflows while you use it feels broken. */
+.onb-valuewrap { min-width: 8.5rem; text-align: center; }
+.onb-value { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+.onb-count { font-size: 0.68rem; color: var(--text-muted); font-family: var(--mono); }
+
+.onb-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; }
+.onb-progress { font-size: 0.72rem; color: var(--text-muted); font-family: var(--mono); }
+.onb-skip { padding: 0.45rem 0.8rem; font-size: 0.82rem; }
+.onb-go   { padding: 0.5rem 1.1rem; }
+
+/* On a phone the three groups cannot share a row. The picker leads,
+   because it is the control; the explanation moves under it and the
+   actions sit last. */
+@media (max-width: 720px) {
+  #onboard-bar { flex-wrap: wrap; gap: 0.6rem; padding: 0.7rem 0.8rem; }
+  .onb-left { order: 2; flex: 1 1 100%; }
+  .onb-picker { order: 1; flex: 1 1 100%; justify-content: space-between; }
+  .onb-right { order: 3; flex: 1 1 100%; justify-content: flex-end; }
+  .onb-why { font-size: 0.74rem; }
+}

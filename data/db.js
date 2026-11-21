@@ -1,0 +1,1775 @@
+// ================================================
+// Unit6 Dojo — Local Database (db.js)
+// Manages profiles, progress, and statistics
+// using localStorage as a persistent store.
+//
+// FUTURE-PROOFING:
+// - All data is keyed by topic ID, not index
+// - DB version field allows migrations
+// - Profiles are independent — no cross-contamination
+// - Adding new modules/topics requires zero DB changes
+// ================================================
+
+const DB = (() => {
+  // Two names behind the app's current one, and it stays that way.
+  // This key addresses every profile, every completed topic and every
+  // review schedule ever saved; renaming it with the app would wipe
+  // all of it for everyone, silently, on the next load. The migration
+  // from "unit6-dojo-progress" below is what that costs to do properly.
+  const STORAGE_KEY = "unit6-dojo-db";
+  const DB_VERSION = 9;
+
+  // Tickets are GONE (2026-08-24). They rate-limited the Arcade, the
+  // Arcade became the Forum, and for two versions nothing read them —
+  // the field was still being written into every profile, migrated on
+  // every load and edited in Admin, for nobody. `energy` before them
+  // went the same way and is still sitting in stored profiles.
+  //
+  // Old saves keep their `tickets` number. Nothing reads it, and a
+  // migration that deletes fields is a migration that can lose data by
+  // typo — the rule in this file is that migrations only ever add.
+
+
+
+  // ---- Default structures ----
+  function defaultDB() {
+    return {
+      version: DB_VERSION,
+      activeProfileId: null,
+      profiles: {}
+    };
+  }
+
+  function defaultProfile(name) {
+    return {
+      name: name || "Student",
+      createdAt: new Date().toISOString(),
+      completedTopics: [],
+      completedChunks: {},   // { topicId: [0, 1, 2] }
+      reviews: {},           // { topicId: { due, interval, ease, lapses, reps } }
+      seenQuotes: [],        // recent quote indices, so they don't repeat
+      charge: 0,             // historical key — session XP counter
+      chargeEarned: 0,       // lifetime earned — never decreases, for stats
+      chargeSpent: 0,        // lifetime spent in the shop
+      ownedThemes: [],       // premium theme ids bought; free themes are never listed
+      theme: "indigo",       // colour theme id
+      // "star" is the default look now (was "cards") — "classic" and
+      // "cards" both stay fully pickable in Settings, this only changes
+      // what a brand-new profile starts on. Existing profiles keep
+      // whatever they already have saved; this line only ever runs once,
+      // at profile creation. Reversed back to Star only once the mobile
+      // layout-drift bug (font-load/viewport-resize reflow, see
+      // core/lobby.js's relayoutIfStarLobbyActive) was actually found
+      // and fixed, not before.
+      lobbyStyle: "star", // "classic" | "cards" | "star" — "star" rearranges the tiles, the other two are re-skins
+      // How the Star topology wires its nodes: "spokes" (hub-and-spoke,
+      // the original) or "hexagram" (two overlapping triangles through
+      // alternating tiles). Hexagram needs exactly 6 visible tiles to
+      // be a real hexagram — core/lobby.js falls back to spokes when
+      // the Resume tile makes it 7. See layoutLobbyRadial.
+      starLinks: "spokes",
+      // Which flag(s) the hexagram's two triangles wear — "combined"
+      // (Ukraine + Israel), "ukraine", "israel" or "usa". Only read
+      // when starLinks is "hexagram". See core/lobby.js's HEX_FLAGS.
+      hexFlags: "combined",
+      // Spokes carry their own colour choice, independent of the
+      // hexagram's — they're sold as two separate things.
+      spokeFlags: "combined",
+      hintsEnabled: true,    // shows/hides the small .settings-hint guidance text app-wide
+      soundEnabled: true,    // mutes core/sfx.js's synthesized UI sounds app-wide
+      bgStripe: "none",      // rank-reward background-stripe overlay id, independent of theme
+      // Active decoration ids, ALL on at once (not a single slot). These
+      // four are free (shop/decor.js prices them 0) and ON by default:
+      // the night-sky look is the app's default appearance now, not an
+      // upsell, so a new profile opens on it rather than on a bare
+      // background. Each can still be switched off in the Inventory.
+      bgDecors: ["usa_stars", "moon", "clouds", "usa_eagles"],
+      scene: "jungle",       // bottom-of-screen scenery — a slot, one at a time; jungle is the free default
+      sky: "night",          // day | night — its own state, NOT derived from the theme being light/dark
+      unitsUnlocked: false,  // bypasses the "finish the previous unit" prereq — see the unlockallunits code
+
+      // ---- Profile customization ----
+      // Bought with $ wallet money, not XP — a deliberate mirror of the
+      // charge/money split everywhere else in the app (charge -> cosmetic
+      // rank rewards, money -> everything else). See core/profile.js.
+      avatar: null,          // equipped avatar emoji id, null = initial-letter default
+      ownedAvatars: [],      // purchased avatar ids
+      pinnedBadges: [],      // up to 3 badge ids showcased next to the name
+
+      // ---- v22: Tokens (🪙) — Library course currency, separate from $ ----
+      // Earned free via rank-up rewards (shop/ranks.js) and/or bought in
+      // real money packs (shop/tokens.js). Never converts to/from $ money.
+      tokens: 0,
+
+      // ---- v23: Patron tier — a support-recognition star, not a real
+      // subscription (no billing/recurring-payment system exists here,
+      // same demo-stub honesty as Token packs). 0 = none, 1 = Supporter,
+      // 2 = Patron, 3 = Contributor — see shop/tokens.js's PATRON_TIERS.
+      patronTier: 0,
+
+      // ---- v24: Admin/moderation suite (admin/admin.js) ----
+      // `isAdmin` gates the suite itself — unrelated to SECRET_ADMIN_NAME
+      // below, which is an older, differently-scoped "maxed-out starter
+      // profile" cheat, not a moderation role. Nothing outside admin.js
+      // currently reads isBanned/warnings — see ADMIN.md's documented
+      // ban-overlay/notice-modal behavior, not implemented here (that UI
+      // wasn't part of what was ported; flagged, not silently built).
+      isAdmin: false,
+      isBanned: false,
+      banReason: "",
+      warnings: [],           // [{ id, message, issuedAt, read }]
+
+      // ---- v5: economy & life-sim ----
+      wallet: 0,             // $ for cosmetics. Server-owned: pulled and
+                             // overwritten by sync, never earned locally.
+      // Dead since v6, when the Garden's dividend payout was removed.
+      // Kept because it maps to economy.last_dividend_claim, and the
+      // schema drift check pairs every column with a field. Dropping
+      // the field without dropping the column reports as drift.
+      lastDividendClaim: null,
+      // Holiday (0026). Mirrors the server, which is the authority:
+      // while away nothing withers AND the reputation allowance is
+      // zero. holidayDays is time already forgiven, added to the
+      // seven-day grace on overdue reviews.
+      holidaySince: null,
+      holidayDays: 0,
+      inventory: [],         // purchased life-shop item ids
+      storyProgress: {
+        unlockedNodes: ["act1_node1"],
+        completedNodes: [],
+        attempts: {},        // { nodeId: { tries, lastOutcome } }
+        flags: []            // narrative facts a later scene can require
+      },
+      lastVitalTick: null,   // ISO date string — one daily decay tick per day visited
+      vitals: {              // 0-100 each
+        hunger: 100,
+        thirst: 100,
+        hygiene: 100,
+        shelterTier: "street"   // street | hostel | apartment | car
+      },
+      lastPosition: null,    // { unitId, topicId, chunkIdx } — resume point
+
+      // ---- v9: course contracts ----
+      // A funny, in-theme "sign here" gimmick shown once per course, the
+      // first time it's entered — a drawn signature (canvas dataURL,
+      // downsized before storage), never a real personal-data form. See
+      // library/library.js's showContractModal.
+      courseContracts: {}, // { courseId: { signature, signedAt } }
+
+      // Cumulative Final Quiz — deliberately separate from stats.topicStats,
+      // see data/db.js's recordFinalQuizResult for why. xpAttemptsToday/
+      // xpAttemptsDate are the anti-farming daily cap on the per-attempt
+      // XP bonus (recordFinalQuizResult), not on the quiz itself.
+      finalQuiz: { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null, xpAttemptsToday: 0, xpAttemptsDate: null },
+
+      // ---- v7: streak ----
+      // A deliberate reversal of PROJECT.md §5's "no streaks" decision —
+      // see data/DATA.md for why. `freezes` refills to 2 at the start of
+      // each real week (Mon) and is spent automatically to bridge a gap
+      // of missed days before the streak actually breaks.
+      streak: { count: 0, lastActiveDate: null, freezes: 2, freezeWeekStart: null },
+      stats: {
+        miniQuizTotal: 0,
+        miniQuizCorrect: 0,
+        examQuestionsTotal: 0,
+        examQuestionsCorrect: 0,
+        examsTaken: 0,
+        examsPassed: 0,
+        topicStats: {}
+        // topicStats[topicId] = { attempts, bestScore, lastScore, completedAt, chunkResults: [bool] }
+      }
+    };
+  }
+
+  // ---- Core I/O ----
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const db = JSON.parse(raw);
+        if (db.version === DB_VERSION) return db;
+        return migrate(db);
+      }
+    } catch (e) { /* corrupt data, start fresh */ }
+    // Check for legacy progress (v1 format)
+    return migrateFromLegacy();
+  }
+
+  // localStorage.setItem throws on quota exhaustion and in Safari's
+  // private mode. It used to be called bare, so a full disk surfaced as
+  // an unhandled exception mid-action with the write silently lost.
+  // Contract signatures (JPEG dataURLs, ~2KB each) made quota a real
+  // ceiling rather than a theoretical one. Returns false instead of
+  // throwing so a caller can react; the Bus event lets the UI warn.
+  function save(db) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      return true;
+    } catch (e) {
+      console.error("[DB] save failed — storage full or unavailable.", e);
+      if (typeof Dojo !== "undefined" && Dojo.Bus) {
+        Dojo.Bus.emit("db:saveFailed", { error: String(e && e.name || e) });
+      }
+      return false;
+    }
+  }
+
+  function migrateFromLegacy() {
+    const db = defaultDB();
+    try {
+      const legacy = localStorage.getItem("unit6-dojo-progress");
+      if (legacy) {
+        const d = JSON.parse(legacy);
+        const profileId = generateId();
+        const profile = defaultProfile("Student");
+        profile.completedTopics = d.completedTopics || [];
+        profile.completedChunks = {};
+        for (const [k, v] of Object.entries(d.completedChunks || {})) {
+          profile.completedChunks[k] = Array.isArray(v) ? v : [...v];
+        }
+        db.profiles[profileId] = profile;
+        db.activeProfileId = profileId;
+        localStorage.removeItem("unit6-dojo-progress");
+      }
+    } catch (e) { /* ignore */ }
+    save(db);
+    return db;
+  }
+
+  // Fills in anything a profile is missing, from defaultProfile's shape.
+  // Migrations only add the fields they introduced, which assumes every
+  // earlier field is already present — true for a profile this app
+  // created, NOT true for an imported or hand-edited file. A profile
+  // missing `stats` used to throw on getStats() and on answering any
+  // quiz, which bricked the app until localStorage was cleared by hand.
+  // Shallow-merges the top level and the one nested object that gets
+  // read field-by-field (stats); everything else is read defensively.
+  function normalizeProfile(p) {
+    const base = defaultProfile((p && p.name) || "Student");
+    const out = { ...base, ...(p || {}) };
+    out.stats = { ...base.stats, ...((p && p.stats) || {}) };
+    if (!out.stats.topicStats || typeof out.stats.topicStats !== "object") {
+      out.stats.topicStats = {};
+    }
+    // These are read with .forEach / Object.entries and would throw on a
+    // non-object; a wrong TYPE is as bad as a missing field here.
+    if (!out.completedChunks || typeof out.completedChunks !== "object") out.completedChunks = {};
+    if (!out.reviews || typeof out.reviews !== "object") out.reviews = {};
+    if (!Array.isArray(out.completedTopics)) out.completedTopics = [];
+    if (!Array.isArray(out.inventory)) out.inventory = [];
+    if (!Array.isArray(out.ownedThemes)) out.ownedThemes = [];
+    if (!Array.isArray(out.seenQuotes)) out.seenQuotes = [];
+    if (!Array.isArray(out.warnings)) out.warnings = [];
+    if (!out.courseContracts || typeof out.courseContracts !== "object") out.courseContracts = {};
+    if (!Array.isArray(out.ownedAvatars)) out.ownedAvatars = [];
+    if (!Array.isArray(out.pinnedBadges)) out.pinnedBadges = [];
+    return out;
+  }
+
+  function migrate(db) {
+    // v2 -> v3: introduce spaced review scheduling.
+    // Topics already completed are given a review due today, so an
+    // existing user immediately sees their back catalogue rather than
+    // an empty queue. Nothing is lost.
+    if (db.version < 3) {
+      const today = new Date().toISOString().slice(0, 10);
+      for (const p of Object.values(db.profiles || {})) {
+        if (!p.reviews) {
+          p.reviews = {};
+          (p.completedTopics || []).forEach(id => {
+            p.reviews[id] = { due: today, interval: 1, ease: 2.5, lapses: 0, reps: 1 };
+          });
+        }
+        if (!p.seenQuotes) p.seenQuotes = [];
+      }
+    }
+    // v3 -> v4: charge, theme and resume position.
+    if (db.version < 4) {
+      for (const p of Object.values(db.profiles || {})) {
+        if (typeof p.charge !== "number") p.charge = 0;
+        if (!p.theme) p.theme = "indigo";
+        if (p.lastPosition === undefined) p.lastPosition = null;
+      }
+    }
+    // v4 -> v5 (part 1): charge becomes spendable and the shop needs to know what
+    // has been bought. Existing balances are treated as already earned so
+    // the lifetime counter isn't zero for someone mid-course.
+    if (db.version < 5) {
+      for (const p of Object.values(db.profiles || {})) {
+        if (typeof p.chargeEarned !== "number") p.chargeEarned = p.charge || 0;
+        if (typeof p.chargeSpent !== "number") p.chargeSpent = 0;
+        if (!Array.isArray(p.ownedThemes)) p.ownedThemes = [];
+        // v4 -> v5 (part 2): economy and life-sim fields. Every one of
+        // these is additive with a safe default, so an existing profile
+        // keeps all its progress and simply starts the new systems at
+        // zero. Never drop a field in a migration.
+        if (typeof p.wallet !== "number") p.wallet = 0;
+        if (p.lastDividendClaim === undefined) p.lastDividendClaim = null;
+        if (p.holidaySince === undefined) p.holidaySince = null;
+        if (p.holidayDays === undefined) p.holidayDays = 0;
+        if (!Array.isArray(p.inventory)) p.inventory = [];
+        if (!p.storyProgress) p.storyProgress = { unlockedNodes: ["act1_node1"], completedNodes: [] };
+        if (!p.storyProgress.attempts) p.storyProgress.attempts = {};
+        if (!Array.isArray(p.storyProgress.flags)) p.storyProgress.flags = [];
+        if (!p.vitals) p.vitals = { hunger: 100, thirst: 100, hygiene: 100, shelterTier: "street" };
+        if (p.lastVitalTick === undefined) p.lastVitalTick = null;
+      }
+    }
+    // v5 -> v6: energy retired, XP uncapped.
+    // Anyone who had banked charge under the old 400 cap keeps it, and
+    // their lifetime total is topped up to at least what they're holding
+    // so a long-standing profile doesn't rank up from zero.
+    if (db.version < 6) {
+      for (const p of Object.values(db.profiles || {})) {
+        if ((p.chargeEarned || 0) < (p.charge || 0)) p.chargeEarned = p.charge || 0;
+      }
+    }
+    // v6 -> v7: streak tracking. Starts at 0, not backfilled from
+    // completedTopics — there's no record of which real days existing
+    // progress was made on, so a fabricated streak would just be a lie
+    // the app tells about its own history.
+    if (db.version < 7) {
+      for (const p of Object.values(db.profiles || {})) {
+        if (!p.streak) p.streak = { count: 0, lastActiveDate: null, freezes: 2, freezeWeekStart: null };
+      }
+    }
+    // v7 -> v8: lobbyStyle. A re-skin of the Lobby tiles (see
+    // core/lobby.js), not a rearrangement — defaults to the existing look.
+    if (db.version < 8) {
+      for (const p of Object.values(db.profiles || {})) {
+        if (!p.lobbyStyle) p.lobbyStyle = "classic";
+      }
+    }
+    // v8 -> v9: course contracts. An existing profile has presumably
+    // already "entered" whatever courses it has progress in, so back-
+    // filling a signature for those would be dishonest — it starts
+    // empty and the modal fires the next time an unsigned course is
+    // opened, same as any other course, old profile or new.
+    if (db.version < 9) {
+      for (const p of Object.values(db.profiles || {})) {
+        if (!p.courseContracts) p.courseContracts = {};
+      }
+    }
+    // Backstop after the version-specific steps: any profile that is
+    // still missing a field (imported, hand-edited, or written by a
+    // version this build has never heard of) gets healed here rather
+    // than throwing somewhere far away at read time.
+    if (db.profiles && typeof db.profiles === "object") {
+      for (const id of Object.keys(db.profiles)) {
+        db.profiles[id] = normalizeProfile(db.profiles[id]);
+      }
+    } else {
+      db.profiles = {};
+    }
+    // An activeProfileId pointing at a profile that isn't there leaves
+    // the app in a half-loaded state — no active profile, but not the
+    // clean "no profile yet" path either.
+    if (db.activeProfileId && !db.profiles[db.activeProfileId]) {
+      db.activeProfileId = Object.keys(db.profiles)[0] || null;
+    }
+    db.version = DB_VERSION;
+    save(db);
+    return db;
+  }
+
+  function generateId() {
+    return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  // ---- Profile management ----
+  function init() {
+    return load();
+  }
+
+  function getActiveProfile() {
+    const db = load();
+    if (!db.activeProfileId || !db.profiles[db.activeProfileId]) return null;
+    return { id: db.activeProfileId, ...db.profiles[db.activeProfileId] };
+  }
+
+  // ---- Secret admin profile ----
+  // Creating a profile with this exact name (case-insensitive) starts it
+  // already fully stocked. Replaces the old `adminaccount` cheat code
+  // by explicit request: codes.js never ships to production (see
+  // docs/CHEATCODES.md — it's gitignored on purpose), so there was no
+  // way to reach it on the deployed site. A secret profile NAME ships
+  // fine, the same way the code string did — nobody types it by
+  // accident, and it needs no visible "Codes" UI at all.
+  // SECRET_ADMIN_NAME lived here: naming a profile "adminaccount"
+  // granted admin, maxed XP and a full wallet. Removed 2026-08-27.
+  //
+  // It was SECURITY AUDIT finding #2 (2026-08-13) -- "hardcoded in
+  // tracked, deployed data/db.js, so it is publicly readable by anyone
+  // who views source". The audit's own conclusion was that it "grants
+  // nothing devtools didn't already", which was true while every
+  // balance lived in localStorage. Steps 5-7 changed that: economy is
+  // server-owned now, so a client-side admin flag grants something
+  // real, and both public strings had to go.
+  //
+  // applyAdminStart below STAYS -- it is still a useful dev shortcut,
+  // just no longer reachable by typing a magic name. Call it from the
+  // console if you need it locally.
+
+  // 10,000 — the Nobel Laureate ceiling in shop/ranks.js. Kept as its
+  // own constant rather than importing RANKS here (db.js stays boring,
+  // no tuning numbers) — if the ladder's ceiling ever moves, this needs
+  // a matching bump, same as everywhere else in the app that assumes it.
+  const ADMIN_XP = 10000;
+
+  function applyAdminStart(profileId) {
+    const db = load();
+    const p = db.profiles[profileId];
+    if (!p) return;
+    const topics = (typeof ALL_TOPICS !== "undefined" ? ALL_TOPICS : []);
+    const doneTopics = new Set(p.completedTopics || []);
+    topics.forEach(t => {
+      doneTopics.add(t.id);
+      if (!p.completedChunks[t.id]) p.completedChunks[t.id] = [];
+      t.chunks.forEach((c, idx) => {
+        if (!p.completedChunks[t.id].includes(idx)) p.completedChunks[t.id].push(idx);
+      });
+    });
+    p.completedTopics = [...doneTopics];
+    p.wallet = 50000;
+    // Reported live: "adminaccount didn't unlock me rank and rewards" —
+    // course/wallet/tickets were being set, but XP (chargeEarned, what
+    // DB.getXp() actually reads) never was, so rank stayed wherever it
+    // started and every rank-gated theme/stripe reward stayed locked.
+    if ((p.chargeEarned || 0) < ADMIN_XP) p.chargeEarned = ADMIN_XP;
+    if ((p.charge || 0) < ADMIN_XP) p.charge = ADMIN_XP;
+    save(db);
+  }
+
+  function createProfile(name) {
+    const db = load();
+    const id = generateId();
+    db.profiles[id] = defaultProfile(name);
+    db.activeProfileId = id;
+    save(db);
+    return id;
+  }
+
+  function getUnitsUnlocked() {
+    if (window.Dojo && Dojo.OPEN_ACCESS) return true;   // see core/core.js
+    const p = getActiveProfile();
+    return !!(p && p.unitsUnlocked);
+  }
+
+  // ADMIN_CODES / applyAdminCode / applyUnlockAllUnits lived here and
+  // were removed 2026-08-27 with Settings' Unlock-code box, their only
+  // caller. The Admin panel does all of it behind an isAdmin gate
+  // instead of a typed string.
+  //
+  // applyAdminStart above STAYS: createProfile still calls it for the
+  // secret profile name, which remains the way to become admin. The
+  // `unitsUnlocked` FIELD also stays (library.js's lock checks read it,
+  // and admin/admin.js sets it directly) — only the code-box path to
+  // setting it is gone.
+
+  function setActiveProfile(id) {
+    const db = load();
+    if (db.profiles[id]) {
+      db.activeProfileId = id;
+      save(db);
+    }
+  }
+
+  function updateProfileName(name) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (p) {
+      p.name = name;
+      save(db);
+    }
+  }
+
+  function deleteProfile(id) {
+    const db = load();
+    delete db.profiles[id];
+    if (db.activeProfileId === id) {
+      const remaining = Object.keys(db.profiles);
+      db.activeProfileId = remaining.length > 0 ? remaining[0] : null;
+    }
+    save(db);
+  }
+
+  // Force-logout, NOT a delete — clears the session (same "no active
+  // profile" state a fresh visit starts in) but leaves the profile and
+  // all its data untouched. Only acts if the kicked id is the one
+  // currently active; kicking a profile that isn't logged in anywhere
+  // in THIS browser is a no-op, which is correct — there's no server
+  // session for a client-only admin panel to actually terminate.
+  function kickProfile(id) {
+    const db = load();
+    if (db.activeProfileId === id) {
+      db.activeProfileId = null;
+      save(db);
+    }
+  }
+
+  // ---- Admin/moderation suite (admin/admin.js) ----
+  function getProfileById(id) {
+    const db = load();
+    const p = db.profiles[id];
+    return p ? { id, ...p } : null;
+  }
+
+  function setAdminStatus(id, isAdmin) {
+    const db = load();
+    const p = db.profiles[id];
+    if (!p) return false;
+    p.isAdmin = !!isAdmin;
+    save(db);
+    return true;
+  }
+
+  // A ban here isn't a lockout — it's a full wipe, by explicit request.
+  // Banning resets every field to a fresh profile's defaults (same
+  // shape `defaultProfile` produces) except identity (name, createdAt)
+  // and the moderation trail (warnings), which survive so the record
+  // of what happened isn't erased along with the progress. isAdmin is
+  // forced off too — a banned admin account makes no sense. This is
+  // irreversible by design: unbanning only clears the isBanned FLAG
+  // (letting them use the now-empty account again), it does not and
+  // cannot restore what was wiped.
+  function setBannedStatus(id, isBanned, reason) {
+    const db = load();
+    const p = db.profiles[id];
+    if (!p) return false;
+    if (isBanned) {
+      const fresh = defaultProfile(p.name);
+      db.profiles[id] = {
+        ...fresh,
+        createdAt: p.createdAt,
+        warnings: p.warnings || [],
+        isBanned: true,
+        banReason: reason || "",
+        isAdmin: false
+      };
+    } else {
+      p.isBanned = false;
+      p.banReason = "";
+    }
+    save(db);
+    return true;
+  }
+
+  function addWarning(id, message) {
+    const db = load();
+    const p = db.profiles[id];
+    if (!p) return false;
+    if (!Array.isArray(p.warnings)) p.warnings = [];
+    p.warnings.push({
+      id: "warn_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      message,
+      issuedAt: new Date().toISOString(),
+      read: false
+    });
+    save(db);
+    return true;
+  }
+
+  function clearWarnings(id) {
+    const db = load();
+    const p = db.profiles[id];
+    if (!p) return false;
+    p.warnings = [];
+    save(db);
+    return true;
+  }
+
+  // ---- Warning delivery ----
+  // addWarning above has always RECORDED warnings; until 2026-08-15
+  // nothing ever showed them to the warned user, so `read` was written
+  // false and never flipped. These two are the delivery half: the
+  // active profile's undelivered notices, and the acknowledgment that
+  // retires them. Warnings are NOT deleted on acknowledgment — the
+  // moderation trail has to survive being read (admin/ADMIN.md shows
+  // the full history, and only an admin's "Clear All" empties it).
+  function getUnreadWarnings() {
+    const p = getActiveProfile();
+    if (!p || !Array.isArray(p.warnings)) return [];
+    return p.warnings.filter(w => !w.read);
+  }
+
+  function acknowledgeWarnings() {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p || !Array.isArray(p.warnings)) return 0;
+    let n = 0;
+    p.warnings.forEach(w => { if (!w.read) { w.read = true; n++; } });
+    if (n) save(db);
+    return n;
+  }
+
+  function listProfiles() {
+    const db = load();
+    return Object.entries(db.profiles).map(([id, p]) => ({
+      id,
+      name: p.name,
+      createdAt: p.createdAt,
+      topicsCompleted: (p.completedTopics || []).length,
+      // Added for admin/admin.js's user table — every other listProfiles
+      // caller (the profile switcher) only ever read the four fields
+      // above, so this is additive, not a behavior change for them.
+      xp: p.chargeEarned || 0,
+      wallet: p.wallet || 0,
+      tokens: p.tokens || 0,
+      avatar: p.avatar || null,
+      isAdmin: !!p.isAdmin,
+      isBanned: !!p.isBanned,
+      banReason: p.banReason || "",
+      warnings: p.warnings || [],
+      completedTopics: p.completedTopics || []
+    }));
+  }
+
+  // ---- Progress ----
+  function getCompletedTopics() {
+    const p = getActiveProfile();
+    return p ? new Set(p.completedTopics || []) : new Set();
+  }
+
+  function getCompletedChunks() {
+    const p = getActiveProfile();
+    if (!p) return {};
+    const result = {};
+    for (const [k, v] of Object.entries(p.completedChunks || {})) {
+      result[k] = new Set(Array.isArray(v) ? v : []);
+    }
+    return result;
+  }
+
+  function markChunkComplete(topicId, chunkIdx) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.completedChunks[topicId]) p.completedChunks[topicId] = [];
+    if (!p.completedChunks[topicId].includes(chunkIdx)) {
+      p.completedChunks[topicId].push(chunkIdx);
+    }
+    save(db);
+  }
+
+  function markTopicComplete(topicId) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.completedTopics.includes(topicId)) {
+      p.completedTopics.push(topicId);
+    }
+    save(db);
+  }
+
+  // ---- Streak ----
+  // Monday-based week start, as YYYY-MM-DD — the key freezes refill against.
+  function isoWeekStart(dateStr) {
+    const d = new Date(dateStr + "T00:00:00Z");
+    const day = d.getUTCDay();               // 0=Sun..6=Sat
+    d.setUTCDate(d.getUTCDate() + ((day === 0 ? -6 : 1) - day));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function daysBetween(a, b) {
+    return Math.round((new Date(b + "T00:00:00Z") - new Date(a + "T00:00:00Z")) / 86400000);
+  }
+
+  function getStreak() {
+    const p = getActiveProfile();
+    return p ? (p.streak || { count: 0, lastActiveDate: null, freezes: 2, freezeWeekStart: null }) : null;
+  }
+
+  // Called once per qualifying study action (a completed chunk). Only the
+  // FIRST call on a given real day changes anything — same "per day
+  // opened, not per action" shape the old vitals tick used. Refills
+  // freezes to 2 at the start of each real week, then spends them
+  // automatically to bridge a gap of fully-missed days before the streak
+  // actually breaks.
+  function touchStreak() {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return null;
+    if (!p.streak) p.streak = { count: 0, lastActiveDate: null, freezes: 2, freezeWeekStart: null };
+    const s = p.streak;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const weekStart = isoWeekStart(today);
+    if (s.freezeWeekStart !== weekStart) {
+      s.freezeWeekStart = weekStart;
+      s.freezes = 2;
+    }
+
+    // `changed` tells the caller whether this is the first qualifying
+    // action of a real day — that's the "renewed" moment worth animating.
+    // A same-day re-touch (most calls, most days) is deliberately silent.
+    const changed = s.lastActiveDate !== today;
+    if (changed) {
+      if (s.lastActiveDate === null) {
+        s.count = 1;
+      } else {
+        const gap = daysBetween(s.lastActiveDate, today) - 1;   // fully-missed days
+        if (gap <= 0) s.count += 1;                              // yesterday -> today
+        else if (gap <= s.freezes) { s.freezes -= gap; s.count += 1; }  // bridged
+        else s.count = 1;                                        // gap too big — restart
+      }
+      s.lastActiveDate = today;
+    }
+    save(db);
+    return { ...s, changed };
+  }
+
+  // ---- Stats recording ----
+  function recordQuizAnswer(topicId, chunkIdx, isCorrect) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.stats.miniQuizTotal++;
+    if (isCorrect) p.stats.miniQuizCorrect++;
+    // Per-topic chunk results
+    if (!p.stats.topicStats[topicId]) {
+      p.stats.topicStats[topicId] = { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null, chunkResults: [] };
+    }
+    const ts = p.stats.topicStats[topicId];
+    ts.chunkResults[chunkIdx] = isCorrect;
+    save(db);
+  }
+
+  function recordExamResult(topicId, correct, total, passed) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    const pct = Math.round((correct / total) * 100);
+    p.stats.examQuestionsTotal += total;
+    p.stats.examQuestionsCorrect += correct;
+    p.stats.examsTaken++;
+    if (passed) p.stats.examsPassed++;
+    if (!p.stats.topicStats[topicId]) {
+      p.stats.topicStats[topicId] = { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null, chunkResults: [] };
+    }
+    const ts = p.stats.topicStats[topicId];
+    ts.attempts++;
+    ts.lastScore = pct;
+    if (pct > ts.bestScore) ts.bestScore = pct;
+    if (passed) ts.completedAt = new Date().toISOString();
+    save(db);
+  }
+
+  // The cumulative Final Quiz deliberately does NOT go through
+  // recordExamResult/markTopicComplete/scheduleReview above — it isn't
+  // a real topic, and writing its result into p.completedTopics or
+  // p.stats.topicStats under a made-up id would silently corrupt real
+  // stats (completionPct, weak-spot lookups, the SM-2 review queue).
+  // Its own small, separate record instead.
+  // Stage 1 of Final Quiz anti-farming (see library.js's showFinalQuizResults
+  // for Stage 2, a minimum-time floor): the per-attempt scaled XP bonus used
+  // to pay out on every single attempt, pass OR fail — "usable any time,"
+  // no cooldown, no cap, on a quiz that's trivial to guess through in
+  // seconds. Caps how many attempts per REAL DAY earn that bonus; the quiz
+  // itself is never blocked past the cap (no hard locks — PROJECT.md §5),
+  // only the XP stops, same "the activity always works, the reward is
+  // what's rate-limited" shape the Arcade's tickets used before it
+  // became the Forum. The tickets themselves were deleted on
+  // 2026-08-24; this cap is the last thing still built on their idea.
+  const FINAL_QUIZ_XP_ATTEMPTS_PER_DAY = 3;
+
+  function recordFinalQuizResult(correct, total, passed) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return { xpEligible: false };
+    if (!p.finalQuiz) p.finalQuiz = { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null, xpAttemptsToday: 0, xpAttemptsDate: null };
+    const pct = Math.round((correct / total) * 100);
+    p.finalQuiz.attempts++;
+    p.finalQuiz.lastScore = pct;
+    if (pct > p.finalQuiz.bestScore) p.finalQuiz.bestScore = pct;
+    if (passed && !p.finalQuiz.completedAt) p.finalQuiz.completedAt = new Date().toISOString();
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (p.finalQuiz.xpAttemptsDate !== today) {
+      p.finalQuiz.xpAttemptsDate = today;
+      p.finalQuiz.xpAttemptsToday = 0;
+    }
+    const xpEligible = p.finalQuiz.xpAttemptsToday < FINAL_QUIZ_XP_ATTEMPTS_PER_DAY;
+    if (xpEligible) p.finalQuiz.xpAttemptsToday++;
+    save(db);
+    return { xpEligible, attemptsToday: p.finalQuiz.xpAttemptsToday, cap: FINAL_QUIZ_XP_ATTEMPTS_PER_DAY };
+  }
+
+  function getFinalQuiz() {
+    const p = getActiveProfile();
+    return (p && p.finalQuiz) || { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null };
+  }
+
+  // Last-attempt correctness for one chunk's mini-quiz, or undefined if
+  // it's never been answered. The only per-chunk signal the app keeps
+  // (no chunk-level SM-2 — see PROJECT.md), so it's what the custom
+  // flashcard deck builder sorts "worst known first" by.
+  function getChunkResult(topicId, chunkIdx) {
+    const p = getActiveProfile();
+    const ts = p && p.stats.topicStats[topicId];
+    return ts ? ts.chunkResults[chunkIdx] : undefined;
+  }
+
+  // A finer-grained, flashcard-only signal — separate from chunkResults
+  // above on purpose. chunkResults is a plain right/wrong from the
+  // auto-graded lesson mini-quiz AND still gets a boolean write from
+  // flashcard self-report (see library.js's finishFlashcards /
+  // finishCustomDeck) — that's the existing weak/new/known 3-state
+  // system the deck builder's chip colors and worst-first sort already
+  // use, and it stays untouched. This is a 4-level self-assessment
+  // (0 Difficult .. 3 Known best) that ONLY a flashcard review writes,
+  // used for the deck builder's optional category filter and nothing
+  // else — mixing it into chunkResults would have made a lesson
+  // mini-quiz answer overwrite a flashcard confidence rating or vice
+  // versa, two different questions being asked of the learner.
+  function recordChunkConfidence(topicId, chunkIdx, level) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.stats.topicStats[topicId]) {
+      p.stats.topicStats[topicId] = { attempts: 0, bestScore: 0, lastScore: 0, completedAt: null, chunkResults: [] };
+    }
+    const ts = p.stats.topicStats[topicId];
+    if (!Array.isArray(ts.chunkConfidence)) ts.chunkConfidence = [];
+    ts.chunkConfidence[chunkIdx] = level;
+    save(db);
+  }
+
+  function getChunkConfidence(topicId, chunkIdx) {
+    const p = getActiveProfile();
+    const ts = p && p.stats.topicStats[topicId];
+    return ts && Array.isArray(ts.chunkConfidence) ? ts.chunkConfidence[chunkIdx] : undefined;
+  }
+
+  // ---- Stats retrieval ----
+  function getStats() {
+    const p = getActiveProfile();
+    if (!p) return null;
+    const s = p.stats;
+    const totalTopics = typeof ALL_TOPICS !== 'undefined' ? ALL_TOPICS.length : 0;
+    const topicsCompleted = (p.completedTopics || []).length;
+
+    return {
+      profileName: p.name,
+      createdAt: p.createdAt,
+      topicsCompleted,
+      totalTopics,
+      completionPct: totalTopics > 0 ? Math.round((topicsCompleted / totalTopics) * 100) : 0,
+      miniQuizTotal: s.miniQuizTotal,
+      miniQuizCorrect: s.miniQuizCorrect,
+      miniQuizAccuracy: s.miniQuizTotal > 0 ? Math.round((s.miniQuizCorrect / s.miniQuizTotal) * 100) : 0,
+      examQuestionsTotal: s.examQuestionsTotal,
+      examQuestionsCorrect: s.examQuestionsCorrect,
+      examAccuracy: s.examQuestionsTotal > 0 ? Math.round((s.examQuestionsCorrect / s.examQuestionsTotal) * 100) : 0,
+      examsTaken: s.examsTaken,
+      examsPassed: s.examsPassed,
+      examPassRate: s.examsTaken > 0 ? Math.round((s.examsPassed / s.examsTaken) * 100) : 0,
+      topicStats: s.topicStats
+    };
+  }
+
+  // ---- Spaced review (SM-2) ----
+  // Woźniak's 1987 algorithm. Deliberately NOT FSRS: FSRS needs hundreds
+  // of reviews before its model fits, so it performs worse than SM-2 at
+  // small scale. Revisit once there is real usage data.
+  function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function addDays(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // quality: 0-5. Derived from exam percentage.
+  // ---- Holiday ----
+  // Mirrors what the SERVER holds (migration 0026). Stored locally only
+  // so the Garden can draw correctly with no network; the server decides
+  // the reputation allowance and is the authority on both values.
+  //
+  // While away nothing withers, and the reputation allowance is zero.
+  // That pairing is the whole safeguard — there is no quota on holiday
+  // because leaving it on means giving up your voice on the Forum to
+  // protect a number.
+  function isOnHoliday() {
+    const p = getActiveProfile();
+    return !!(p && p.holidaySince);
+  }
+
+  function getHolidayDays() {
+    const p = getActiveProfile();
+    return (p && p.holidayDays) || 0;
+  }
+
+  function setHoliday(sinceIso) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.holidaySince = sinceIso || null;
+    save(db);
+  }
+
+  // Called on return with the day count the SERVER computed, so both
+  // sides forgive the same number and cannot drift.
+  //
+  // Shifts every scheduled review forward by that many days. Without
+  // this, a fortnight away returns as a wall of forty due topics, which
+  // is a documented reason people abandon spaced repetition outright —
+  // and the reviews were displaced by the absence, not earned by it.
+  function endHoliday(days) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return 0;
+    const n = Math.max(0, days | 0);
+
+    if (n > 0 && p.reviews) {
+      Object.keys(p.reviews).forEach(id => {
+        const r = p.reviews[id];
+        if (!r || !r.due) return;
+        const d = new Date(r.due);
+        d.setDate(d.getDate() + n);
+        r.due = d.toISOString().slice(0, 10);
+      });
+    }
+
+    p.holidaySince = null;
+    p.holidayDays = ((p.holidayDays || 0) + n);
+    save(db);
+    return n;
+  }
+
+  function scheduleReview(topicId, quality) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.reviews) p.reviews = {};
+
+    const r = p.reviews[topicId] || { interval: 0, ease: 2.5, lapses: 0, reps: 0 };
+
+    if (quality < 3) {
+      // Failed. Back to tomorrow, and the card gets easier to trigger.
+      r.reps = 0;
+      r.interval = 1;
+      r.lapses = (r.lapses || 0) + 1;
+    } else {
+      r.reps = (r.reps || 0) + 1;
+      if (r.reps === 1) r.interval = 1;
+      else if (r.reps === 2) r.interval = 6;
+      else r.interval = Math.round(r.interval * r.ease);
+    }
+
+    // Ease adjustment, floored at 1.3 to avoid SM-2's "ease hell".
+    //
+    // The middle constant is 0.15, not textbook SM-2's 0.08. At 0.08 the
+    // whole expression evaluates to exactly ZERO at quality 4 — our pass
+    // mark — so somebody who scrapes through every single review keeps a
+    // flat 2.5 ease and gets an interval ladder of 1, 6, 15, 38, 95, 238
+    // days: the same aggressive spacing as somebody who answers
+    // perfectly. Barely remembering was treated as evidence of durable
+    // memory, and the eventual lapse was guaranteed.
+    //
+    // 0.15 makes quality 4 cost -0.07, so the ladder becomes
+    // 1, 6, 14, 32, 71, 153 — a struggling learner is simply reminded
+    // sooner. Quality 5 is untouched, and untouchable: (5 - quality) is
+    // zero there, so the changed term is multiplied away and a perfect
+    // learner keeps 1, 6, 16, 45, 131, 393 exactly as before.
+    //
+    // Order matters and is deliberate: the interval above was computed
+    // with the PREVIOUS ease, and only now does the ease move. Report 3
+    // proposed this fix with a formula that gives +0.03 rather than the
+    // -0.07 its own table used, and with intervals that do not reproduce
+    // under this ordering — so the constant here was derived, not copied.
+    r.ease = Math.max(1.3, r.ease + (0.1 - (5 - quality) * (0.15 + (5 - quality) * 0.02)));
+    r.due = addDays(r.interval);
+    p.reviews[topicId] = r;
+    save(db);
+  }
+
+  function getReviews() {
+    const p = getActiveProfile();
+    return p ? (p.reviews || {}) : {};
+  }
+
+  function getDueTopicIds() {
+    const reviews = getReviews();
+    const today = todayStr();
+    return Object.keys(reviews).filter(id => reviews[id].due && reviews[id].due <= today);
+  }
+
+  function daysUntilDue(topicId) {
+    const r = getReviews()[topicId];
+    if (!r || !r.due) return null;
+    const diff = Math.ceil((new Date(r.due) - new Date(todayStr())) / 86400000);
+    return diff;
+  }
+
+  // ---- Weak spots ----
+  // Answers "what should I study now?" — the only question a learner has.
+  // Everything here is already recorded; it was just never surfaced.
+  function getWeakSpots(limit) {
+    const p = getActiveProfile();
+    if (!p) return [];
+    const reviews = p.reviews || {};
+    const ts = p.stats.topicStats || {};
+    return Object.keys(ts)
+      .map(id => ({
+        topicId: id,
+        lastScore: ts[id].lastScore || 0,
+        bestScore: ts[id].bestScore || 0,
+        attempts: ts[id].attempts || 0,
+        lapses: (reviews[id] && reviews[id].lapses) || 0
+      }))
+      .filter(t => t.attempts > 0)
+      // Composite weakness: recent score dominates, each lapse costs
+      // 10 points. Sorting by lapses first would rank a topic scoring
+      // 100% above one scoring 40%, which is not what "weak" means.
+      .map(t => ({ ...t, weakness: t.lastScore - (t.lapses * 10) }))
+      .filter(t => t.weakness < 80)
+      .sort((a, b) => a.weakness - b.weakness)
+      .slice(0, limit || 3);
+  }
+
+  // ---- Quote rotation ----
+  function getSeenQuotes() {
+    const p = getActiveProfile();
+    return p ? (p.seenQuotes || []) : [];
+  }
+
+  function pushSeenQuote(idx, keep) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.seenQuotes) p.seenQuotes = [];
+    p.seenQuotes.push(idx);
+    const max = keep || 12;
+    if (p.seenQuotes.length > max) p.seenQuotes = p.seenQuotes.slice(-max);
+    save(db);
+  }
+
+  // ---- XP ----
+  //
+  // XP is earned by studying and is NEVER SPENT. There is no cap and no
+  // sink to design, because rank is a record of what you have done rather
+  // than a balance you draw down. That is what retired the old capped
+  // charge: a cap needs a sink, a sink needs prices, and prices made a
+  // study currency behave like a wallet.
+  //
+  // Stored under the historical key `charge` / `chargeEarned` — renaming
+  // them would invalidate every saved profile, so labels change in the
+  // UI and keys stay put (same rule as `miniQuiz*`).
+  //
+  // Rewards are unlocked by RANK, computed in shop/ranks.js from the
+  // lifetime total. This file knows nothing about ranks or rewards.
+  function getXp() {
+    const p = getActiveProfile();
+    return p ? (p.chargeEarned || 0) : 0;
+  }
+
+  // Used only by the rank cheat codes. Not part of normal play — XP
+  // moves in one direction, by studying, everywhere else.
+  function setXp(total) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return 0;
+    const v = Math.max(0, Math.floor(total) || 0);
+    p.charge = v;
+    p.chargeEarned = v;
+    save(db);
+    return v;
+  }
+
+  // Patron tiers (shop/tokens.js's PATRON_TIERS) grant a permanent XP
+  // multiplier as part of the "thank you" — 0 = no patron, tier 1/2/3
+  // match the Supporter/Patron/Contributor tiers there by index.
+  // Applied here, in the one function every XP grant already funnels
+  // through (chunk/exam/review/final-quiz/unit-reward XP all call
+  // addXp, directly or via core/hud.js's awardCharge), so nothing else
+  // needs to know this exists.
+  const PATRON_XP_MULT = { 0: 1, 1: 1.5, 2: 1.75, 3: 2 };
+
+  // Writes exactly what it is given, with no multiplier of any kind.
+  //
+  // For core/earn.js only. The server has already rolled the jitter and
+  // applied both the exam and the patron multipliers (see migration
+  // 0014), so its answer is the final number. Running it through addXp
+  // would apply the patron bonus a second time — the honest-looking bug
+  // where a tier-3 patron quietly earns four times scale.
+  //
+  // Nothing else should call this. Everything that is not a server
+  // answer belongs in addXp.
+  function addXpRaw(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p || amount <= 0) return 0;
+    p.charge = (p.charge || 0) + amount;
+    p.chargeEarned = (p.chargeEarned || 0) + amount;
+    save(db);
+    return amount;
+  }
+
+  function addXp(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p || amount <= 0) return 0;
+    const mult = PATRON_XP_MULT[p.patronTier || 0] || 1;
+    const granted = Math.round(amount * mult);
+    p.charge = (p.charge || 0) + granted;
+    p.chargeEarned = (p.chargeEarned || 0) + granted;
+    save(db);
+    return granted;
+  }
+
+  function getChargeTotals() {
+    const p = getActiveProfile();
+    return {
+      earned: (p && p.chargeEarned) || 0,
+      spent: (p && p.chargeSpent) || 0
+    };
+  }
+
+  // ---- Shop ----
+  function getOwnedThemes() {
+    const p = getActiveProfile();
+    return new Set((p && p.ownedThemes) || []);
+  }
+
+  function ownsTheme(id) {
+    return getOwnedThemes().has(id);
+  }
+
+  // Grants a theme outright. Themes are no longer bought — they arrive
+  // with a rank — but the list is kept so anything unlocked under the
+  // old paid system stays owned.
+  function grantTheme(id) {
+    if (ownsTheme(id)) return false;
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (!Array.isArray(p.ownedThemes)) p.ownedThemes = [];
+    p.ownedThemes.push(id);
+    save(db);
+    return true;
+  }
+
+  // ---- Profile customization (avatars, pinned badges) ----
+  // Bought with $, the same wallet everything in shop/life.js's old
+  // catalogue and the Arcade already spend from — see shop/avatars.js.
+  function getAvatar() {
+    const p = getActiveProfile();
+    return p ? p.avatar : null;
+  }
+
+  function getOwnedAvatars() {
+    const p = getActiveProfile();
+    return [...((p && p.ownedAvatars) || [])];
+  }
+
+  // The only path that may touch the wallet for an avatar purchase —
+  // same "one place per purchase" rule shop/life.js's buy() used to
+  // follow. Equips on purchase, same as buying a hostel bed used to
+  // apply immediately rather than sitting unused in a bag.
+  function buyAvatar(id, price) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (!Array.isArray(p.ownedAvatars)) p.ownedAvatars = [];
+    if (p.ownedAvatars.includes(id)) { p.avatar = id; save(db); return true; }
+    if ((p.wallet || 0) < price) return false;
+    p.wallet -= price;
+    p.ownedAvatars.push(id);
+    p.avatar = id;
+    save(db);
+    return true;
+  }
+
+  function setAvatar(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (id !== null && !(p.ownedAvatars || []).includes(id)) return false;
+    p.avatar = id;
+    save(db);
+    return true;
+  }
+
+  function getPatronTier() {
+    const p = getActiveProfile();
+    return p ? (p.patronTier || 0) : 0;
+  }
+
+  // A tier can only go UP here — same "no downgrade path" shape as
+  // owning an avatar, since this is a one-time demo "thank you," not a
+  // real subscription that can lapse. Real recurring billing (and a
+  // real downgrade/cancel path) is backend work, not this.
+  function setPatronTier(tier) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (tier <= (p.patronTier || 0)) return false;
+    p.patronTier = tier;
+    save(db);
+    return true;
+  }
+
+  function getPinnedBadges() {
+    const p = getActiveProfile();
+    return [...((p && p.pinnedBadges) || [])];
+  }
+
+  // Toggle a badge in/out of the showcase — up to 3 slots, same cap
+  // enforced here so no caller can silently exceed it.
+  const MAX_PINNED_BADGES = 3;
+  function togglePinnedBadge(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (!Array.isArray(p.pinnedBadges)) p.pinnedBadges = [];
+    const i = p.pinnedBadges.indexOf(id);
+    if (i >= 0) { p.pinnedBadges.splice(i, 1); save(db); return true; }
+    if (p.pinnedBadges.length >= MAX_PINNED_BADGES) return false;
+    p.pinnedBadges.push(id);
+    save(db);
+    return true;
+  }
+
+  // ---- Theme ----
+  function getTheme() {
+    const p = getActiveProfile();
+    return (p && p.theme) || "indigo";
+  }
+
+  function setTheme(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.theme = id;
+    save(db);
+  }
+
+  function getLobbyStyle() {
+    const p = getActiveProfile();
+    return (p && p.lobbyStyle) || "classic";
+  }
+
+  function setLobbyStyle(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.lobbyStyle = id;
+    save(db);
+  }
+
+  function getStarLinks() {
+    const p = getActiveProfile();
+    return (p && p.starLinks) || "spokes";
+  }
+
+  function setStarLinks(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.starLinks = id;
+    save(db);
+  }
+
+  function getHexFlags() {
+    const p = getActiveProfile();
+    return (p && p.hexFlags) || "combined";
+  }
+
+  function getSpokeFlags() {
+    const p = getActiveProfile();
+    return (p && p.spokeFlags) || "combined";
+  }
+
+  function setSpokeFlags(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.spokeFlags = id;
+    save(db);
+  }
+
+  function setHexFlags(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.hexFlags = id;
+    save(db);
+  }
+
+  // Defaults to true (undefined reads as "on") so an already-migrated
+  // profile that predates this field never silently loses its hints.
+  function getHintsEnabled() {
+    const p = getActiveProfile();
+    return !p || p.hintsEnabled !== false;
+  }
+
+  function setHintsEnabled(on) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.hintsEnabled = !!on;
+    save(db);
+  }
+
+  function getSoundEnabled() {
+    const p = getActiveProfile();
+    return !p || p.soundEnabled !== false;
+  }
+
+  function setSoundEnabled(on) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.soundEnabled = !!on;
+    save(db);
+  }
+
+  function getBgStripe() {
+    const p = getActiveProfile();
+    return (p && p.bgStripe) || "none";
+  }
+
+  function setBgStripe(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.bgStripe = id;
+    save(db);
+  }
+
+  // ---- Background decorations ----
+  // A DIFFERENT shape than bgStripe on purpose: stripes are one-at-a-
+  // time (a slot), decorations are "each separately purchasable" and
+  // meant to layer — you can have Stars AND Eagles on at once. So this
+  // is a small SET of active ids, not a single current one. Bought with
+  // `$` like layouts/themes/palettes (see shop/decor.js), stored the
+  // same generic-inventory-string way (`decor_<id>`).
+  function getBgDecors() {
+    const p = getActiveProfile();
+    return (p && Array.isArray(p.bgDecors)) ? p.bgDecors : [];
+  }
+
+  function setBgDecors(ids) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.bgDecors = Array.isArray(ids) ? ids.slice() : [];
+    save(db);
+  }
+
+  function toggleBgDecor(id) {
+    const cur = getBgDecors();
+    const next = cur.includes(id) ? cur.filter(x => x !== id) : cur.concat(id);
+    setBgDecors(next);
+    return next;
+  }
+
+  // ---- Sky (day / night) ----
+  // Its OWN state, deliberately not derived from whether the theme is
+  // light or dark. It was derived at first, and that conflated two
+  // separate choices: which colours the app uses, and what time of day
+  // it is outside. Now you can run a dark theme in daylight or a light
+  // theme at night. Drives the sun/moon swap, the stars, and the cloud
+  // count — see core/theme.js's applySky.
+  function getSky() {
+    const p = getActiveProfile();
+    return (p && p.sky) || "night";
+  }
+
+  function setSky(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.sky = id === "day" ? "day" : "night";
+    save(db);
+  }
+
+  // ---- Scenery ----
+  // A SLOT, not a set (unlike decorations above): this is the horizon
+  // along the bottom of the screen, and you can't stand on a jungle
+  // floor and a city street at the same time. Single-select, same shape
+  // as bgStripe.
+  function getScene() {
+    const p = getActiveProfile();
+    return (p && p.scene) || "none";
+  }
+
+  function setScene(id) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.scene = id;
+    save(db);
+  }
+
+  // ---- Resume position ----
+  // completedChunks was written from the very first version and never
+  // read by anything. This is what it was always for.
+  function setPosition(unitId, topicId, chunkIdx) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.lastPosition = { unitId, topicId, chunkIdx };
+    save(db);
+  }
+
+  function getPosition() {
+    const p = getActiveProfile();
+    return p ? (p.lastPosition || null) : null;
+  }
+
+  function clearPosition() {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.lastPosition = null;
+    save(db);
+  }
+
+  // ---- Course contracts ----
+  // A drawn signature, not a real personal-data form — see the v9
+  // migration note above for why. One per course, per profile.
+  function hasSignedContract(courseId) {
+    const p = getActiveProfile();
+    return !!(p && p.courseContracts && p.courseContracts[courseId]);
+  }
+
+  function signContract(courseId, signatureDataUrl) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    if (!p.courseContracts) p.courseContracts = {};
+    p.courseContracts[courseId] = { signature: signatureDataUrl, signedAt: new Date().toISOString() };
+    save(db);
+  }
+
+  // Furthest chunk completed in a topic, so returning resumes there
+  // rather than restarting from chunk 1.
+  function resumeChunkFor(topicId, chunkCount) {
+    const done = getCompletedChunks()[topicId];
+    if (!done || !done.size) return 0;
+    for (let i = 0; i < chunkCount; i++) {
+      if (!done.has(i)) return i;
+    }
+    return 0; // every chunk done — topic gets replayed from the top
+  }
+
+
+  // ================================================
+  // v5 — Economy, energy, tickets, life-sim, story
+  // ------------------------------------------------
+  // Everything below is *storage only*. Prices, odds, payouts and
+  // vital decay rates live in the branch that owns them (shop/,
+  // garden/, library/), never here. db.js must stay boring.
+  // ================================================
+
+  // ---- Reputation (was `$` money) ----
+  // Same stored field, new meaning as of 2026-08-15. `$` existed to buy
+  // Arcade unlocks and cosmetics; the Arcade became the Forum and every
+  // cosmetic went free, so money had no sink left at all. Rather than
+  // delete a balance every profile already has, it was repurposed: the
+  // number you had is the reputation you have.
+  //
+  // The STORAGE key stays `wallet` deliberately — renaming it would
+  // orphan every existing save for a cosmetic gain. The exported names
+  // below are what new code should use; getWallet/addMoney/spendMoney
+  // remain as aliases because Garden, Library and Admin still call them.
+  function getWallet() {
+    const p = getActiveProfile();
+    return p ? (p.wallet || 0) : 0;
+  }
+
+  function addMoney(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return 0;
+    p.wallet = Math.max(0, (p.wallet || 0) + amount);
+    save(db);
+    return p.wallet;
+  }
+
+  // All-or-nothing, like spendCharge — a caller must never half-buy.
+  function spendMoney(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if ((p.wallet || 0) < amount) return false;
+    p.wallet -= amount;
+    save(db);
+    return true;
+  }
+
+  // ---- Tokens (🪙) ----
+  // A second, SEPARATE currency from `$` money — Tokens buy Library
+  // courses, money buys Custom Shop/Garden things. Storage-only here,
+  // same as wallet: prices and pack sizes live in shop/tokens.js, never
+  // here. One narrow exception as of 2026-08-15: shop/tokens.js's
+  // exchangeTokens() converts Tokens → `$` at a fixed, deliberately
+  // lossy rate (never the reverse) — see that function's comment for
+  // why a one-way sink doesn't break the "deliberately separate" rule.
+  //
+  // Named Tokens, not Stars — ⭐ was already the XP glyph everywhere
+  // (the rank chip and the "+N XP" fly-bolt both use it, see
+  // core/hud.js/index.html's ⭐) before this currency existed, so
+  // reusing "Stars" for a second, unrelated currency would have
+  // collided with it visually and in name. Caught and renamed before
+  // this ever shipped past one session.
+  function getTokens() {
+    const p = getActiveProfile();
+    return p ? (p.tokens || 0) : 0;
+  }
+
+  function addTokens(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return 0;
+    p.tokens = Math.max(0, (p.tokens || 0) + amount);
+    save(db);
+    return p.tokens;
+  }
+
+  // All-or-nothing, like spendMoney.
+  function spendTokens(amount) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if ((p.tokens || 0) < amount) return false;
+    p.tokens -= amount;
+    save(db);
+    return true;
+  }
+
+  // regen() lived here — lazy "credit the time that passed since the
+  // stamp" refill. Tickets were its only caller, so it went with them.
+  // Worth remembering the shape if anything is ever rate-limited again:
+  // no timers, just arithmetic on read, which stays correct across a tab
+  // that was shut for three days.
+
+  // ---- Garden dividends (dead since v6) ----
+  // No caller left: the Garden stopped paying out. These stay only so
+  // the field they read keeps its pair with economy.last_dividend_claim.
+  // Delete them together with the column and the field, or not at all.
+  function getLastDividendClaim() {
+    const p = getActiveProfile();
+    return p ? (p.lastDividendClaim || null) : null;
+  }
+
+  function setLastDividendClaim(iso) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return;
+    p.lastDividendClaim = iso;
+    save(db);
+  }
+
+  // ---- Life-shop inventory ----
+  function getInventory() {
+    const p = getActiveProfile();
+    return [...((p && p.inventory) || [])];
+  }
+
+  function addInventory(itemId) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return false;
+    if (!Array.isArray(p.inventory)) p.inventory = [];
+    p.inventory.push(itemId);
+    save(db);
+    return true;
+  }
+
+  // consumeInventory, getVitals, patchVitals, getLastVitalTick and
+  // setLastVitalTick were the life-sim's own DB API — removed with
+  // shop/life.js (see BACKLOG.md's Batch 5/9). getInventory/addInventory
+  // stay: games.js uses them for unrelated one-off game unlocks (see its
+  // own comment on that). The `vitals`, `lastVitalTick`, `storyProgress`
+  // and `inventory` FIELDS stay in defaultProfile/migrate — this file
+  // never drops a field, and an unread one costs nothing (same call made
+  // for storyProgress when Story was removed).
+
+  // ---- Story: removed ----
+  // The Story branch was cut (see BACKLOG.md). Its DB API
+  // (getStoryProgress / recordNodeAttempt / addStoryFlag / unlockNode /
+  // completeNode) went with it — nothing called them once story/ was
+  // gone. The storyProgress FIELD is deliberately still written by
+  // defaultProfile and preserved by migrations: this file never drops a
+  // field, so an existing profile keeps its narrative history intact in
+  // case the branch ever comes back.
+
+  // ---- Admin ----
+  // Marks every topic complete. Used by the settings cheat code so a
+  // reviewer can see the later screens without a 26-topic grind.
+  // Deliberately does NOT touch reviews, stats or the wallet — a
+  // cheated profile should still look obviously cheated in Stats.
+  function unlockAllTopics(topicIds) {
+    const db = load();
+    const p = db.profiles[db.activeProfileId];
+    if (!p) return 0;
+    const set = new Set(p.completedTopics || []);
+    topicIds.forEach(id => set.add(id));
+    p.completedTopics = [...set];
+    save(db);
+    return p.completedTopics.length;
+  }
+
+  // ---- Export / Import ----
+  function exportData() {
+    const db = load();
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `unit6-dojo-${db.profiles[db.activeProfileId]?.name || 'backup'}-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const incoming = JSON.parse(e.target.result);
+          if (!incoming || typeof incoming !== "object" ||
+              !incoming.profiles || typeof incoming.profiles !== "object" ||
+              Array.isArray(incoming.profiles)) {
+            reject(new Error("Invalid database file — no profiles found."));
+            return;
+          }
+          if (!Object.keys(incoming.profiles).length) {
+            reject(new Error("That backup contains no profiles."));
+            return;
+          }
+          // A file from a NEWER build can hold fields this version has no
+          // migration for. Importing it used to stamp it as the current
+          // version and silently drop whatever it didn't understand —
+          // refusing is the honest outcome.
+          const v = Number(incoming.version);
+          if (Number.isFinite(v) && v > DB_VERSION) {
+            reject(new Error(`That backup is from a newer version (v${v}); this build understands up to v${DB_VERSION}.`));
+            return;
+          }
+          // Anything without a usable version is treated as oldest-known
+          // so every migration step runs, rather than being assumed current.
+          if (!Number.isFinite(v)) incoming.version = 1;
+          // migrate() normalizes every profile and repairs activeProfileId,
+          // then saves. Import goes through the same door a normal load
+          // does instead of writing unvalidated JSON straight to storage.
+          const db = migrate(incoming);
+          resolve(db);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  }
+
+  // ---- Public API ----
+  return {
+    init,
+    getActiveProfile,
+    createProfile,
+    getUnitsUnlocked,
+    setActiveProfile,
+    updateProfileName,
+    deleteProfile,
+    listProfiles,
+    getCompletedTopics,
+    getCompletedChunks,
+    markChunkComplete,
+    markTopicComplete,
+    getStreak,
+    touchStreak,
+    recordQuizAnswer,
+    getChunkResult,
+    recordChunkConfidence,
+    getChunkConfidence,
+    recordExamResult,
+    recordFinalQuizResult,
+    getFinalQuiz,
+    getStats,
+    scheduleReview,
+    getReviews,
+    isOnHoliday, getHolidayDays, setHoliday, endHoliday,
+    getDueTopicIds,
+    daysUntilDue,
+    getWeakSpots,
+    getSeenQuotes,
+    pushSeenQuote,
+    getXp,
+    addXp, addXpRaw,
+    setXp,
+    getChargeTotals,
+    getOwnedThemes,
+    ownsTheme,
+    grantTheme,
+    getWallet,
+    addMoney,
+    spendMoney,
+    // Preferred names — same storage, current meaning. See getWallet.
+    getReputation: getWallet,
+    addReputation: addMoney,
+    spendReputation: spendMoney,
+    getTokens,
+    addTokens,
+    spendTokens,
+    getLastDividendClaim,
+    setLastDividendClaim,
+    getInventory,
+    addInventory,
+    unlockAllTopics,
+    getTheme,
+    setTheme,
+    getLobbyStyle,
+    setLobbyStyle,
+    getStarLinks,
+    setStarLinks,
+    getHexFlags,
+    setHexFlags,
+    getSpokeFlags,
+    setSpokeFlags,
+    getHintsEnabled,
+    setHintsEnabled,
+    getSoundEnabled,
+    setSoundEnabled,
+    getBgStripe,
+    setBgStripe,
+    getBgDecors,
+    setBgDecors,
+    toggleBgDecor,
+    getScene,
+    setScene,
+    getSky,
+    setSky,
+    getAvatar,
+    setAvatar,
+    getPatronTier,
+    setPatronTier,
+    getProfileById,
+    setAdminStatus,
+    setBannedStatus,
+    addWarning,
+    clearWarnings,
+    getUnreadWarnings,
+    acknowledgeWarnings,
+    kickProfile,
+    getOwnedAvatars,
+    buyAvatar,
+    getPinnedBadges,
+    togglePinnedBadge,
+    setPosition,
+    getPosition,
+    clearPosition,
+    hasSignedContract,
+    signContract,
+    resumeChunkFor,
+    exportData,
+    importData
+  };
+})();
